@@ -75,6 +75,16 @@ function goodReel(o, p) {
   return Dc.fresh(p).some((d) => d.v < Dc.mean(d.k));
 }
 
+/** the Port shops the bot wants most, in order (shop options are one per shop now, so the bot picks among them here) */
+function shopWant(p) {
+  const want = [];
+  if (p.rods.length === 0) want.push('rod');
+  if (p.reels.length === 0) want.push('reel');
+  if (S.day <= 4) want.push('dice');
+  want.push('sup', 'rod', 'reel', 'dice');
+  return want;
+}
+
 function decideTurn(pr) {
   const me = pr.color;
   const p = S.P[me];
@@ -97,8 +107,12 @@ function decideTurn(pr) {
   if (p.loc === 'port') {
     const m = find('mount');
     if (m) return m[1];
-    const sh = find('shop');
-    if (sh && p.bucks >= 1 && S.day < S.dayLast) return sh[1];
+    if (p.bucks >= 1 && S.day < S.dayLast) {
+      for (const k of shopWant(p)) {
+        const sh = ens.find(([o]) => o.k === 'shop' && o.shop === k);
+        if (sh) return sh[1];
+      }
+    }
     const se = find('sell');
     if (se && S.day < S.dayLast && p.bucks < 3 && p.hand.some((id) => Rl.sellable(id) && Rl.val(p, id) <= 2 && !D.fish[id].foul)) return se[1];
     return passI ? passI[1] : firstEnabled(pr);
@@ -182,18 +196,6 @@ function decidePick(pr) {
       const dink = byId(pr, 'dink');
       if (reg >= 0 && (p.reg.length >= 3 || dink < 0)) return reg;
       return dink >= 0 ? dink : en[0][1];
-    }
-    case 'shop': {
-      const want = [];
-      if (p.rods.length === 0) want.push('rod');
-      if (p.reels.length === 0) want.push('reel');
-      if (S.day <= 4) want.push('dice');
-      want.push('sup', 'rod', 'reel', 'dice');
-      for (const k of want) {
-        const i = byId(pr, k);
-        if (i >= 0) return i;
-      }
-      return en[0][1];
     }
     case 'shopTier': {
       let best = -1;

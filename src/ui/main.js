@@ -8,6 +8,7 @@ import { h, clear, frameThrottle, toast } from './dom.js';
 import { seatColor, refOf } from './art.js';
 import { UI, loadPrefs, viewerSeat, seeAll, needsCurtain, humans, parseSeed } from './store.js';
 import { createBoard } from './board.js';
+import { createPortBoard, zoneOf } from './portboard.js';
 import { createPlayers } from './players.js';
 import { createDecision } from './decision.js';
 import { createLog } from './log.js';
@@ -15,21 +16,51 @@ import { createFx } from './fxdir.js';
 import { play, soundOn, setSound, unlockOnGesture } from './sfx.js';
 import { createMenu, speedSelect } from './menu.js';
 import { openGraveyard, openHelp, openResults, closeAllModals, confirmDialog } from './modals.js';
+import { ic, paintIcons, setIconSet, iconSet } from './icons.js';
 
 const app = document.getElementById('app');
 loadPrefs();
+paintIcons();
 
 const PHASES = { start: 'Bắt đầu ngày', refresh: 'Refresh', declare: 'Khai báo', action: 'Hành động', over: 'Kết thúc' };
 const SHORT_DAY = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
 // ACTIONS ---------------------------------------------------------------------------------------------
+/** only a direct action of the turn (an action button, a cast on the Sea, Sell or a shop on the Port) waits for one confirmation;
+ *  a step inside an action (reveal order, reward, slot, payment) is taken at once */
+function needsConfirm(pr, i) {
+  const o = pr.opts[i];
+  return UI.prefs.confirm && pr.kind === 'pick' && pr.tag === 'turn' && !!o && !o.dis && o.kind !== 'cancel';
+}
+
+function commit(i) {
+  UI.pending = null;
+  if (Game.answer(i)) {
+    UI.hint = null;
+    play('click');
+  } else toast('Lựa chọn này không dùng được.');
+}
+
 const actions = {
   pick(i) {
-    if (Game.answer(i)) {
-      UI.hint = null;
-      play('click');
+    const pr = Game.prompt;
+    if (pr && needsConfirm(pr, i)) {
+      // the choice waits in the decision panel until its confirm button is pressed (confirmPick)
+      UI.pending = { pr, i };
+      schedule();
+      return;
     }
-    else toast('Lựa chọn này không dùng được.');
+    commit(i);
+  },
+  confirmPick() {
+    const p = UI.pending;
+    UI.pending = null;
+    if (p && p.pr === Game.prompt) commit(p.i);
+    else schedule();
+  },
+  cancelPick() {
+    UI.pending = null;
+    schedule();
   },
   submit(v) {
     if (Game.answer(v)) {
@@ -42,6 +73,7 @@ const actions = {
     if (!Game.canUndo()) return;
     UI.hint = null;
     UI.multi = null;
+    UI.pending = null;
     UI.endShown = false;
     closeAllModals();
     Game.undo();
@@ -92,12 +124,36 @@ const actions = {
 
 // GAME SCREEN ------------------------------------------------------------------------------------------
 const board = createBoard((d) => openGraveyard(d));
+const port = createPortBoard();
 const players = createPlayers();
 const logPanel = createLog();
 const decision = createDecision(actions);
-const fx = createFx({ board, panelOf: (c) => players.panelOf(c), humans });
+const fx = createFx({ board, port, panelOf: (c) => players.panelOf(c), humans });
 document.body.append(fx.layer);
 unlockOnGesture();
+
+// which table is on screen: the Sea board or the Port board (switches itself when a prompt needs the other one)
+let activeView = 'sea';
+let viewNeeds = { sea: false, port: false };
+const tabSea = h('button', { type: 'button', class: 'vtab', role: 'tab', onclick: () => setView('sea') }, ic('sea'), ' Biển');
+const tabPort = h('button', { type: 'button', class: 'vtab', role: 'tab', onclick: () => setView('port') }, ic('port'), ' Cảng');
+const viewTabs = h('div', { class: 'viewtabs', role: 'tablist', 'aria-label': 'Chọn bàn chơi' }, tabSea, tabPort);
+/** shows the chosen table; a tab gets a dot when the prompt is waiting for a click on the other table */
+function renderViews() {
+  const sea = activeView !== 'port';
+  board.el.hidden = !sea;
+  port.el.hidden = sea;
+  tabSea.classList.toggle('on', sea);
+  tabPort.classList.toggle('on', !sea);
+  tabSea.classList.toggle('need', viewNeeds.sea && !sea);
+  tabPort.classList.toggle('need', viewNeeds.port && sea);
+  layoutEl.classList.toggle('port-view', !sea);
+}
+function setView(v) {
+  activeView = v;
+  // the panels follow the table too: at the Port they keep only what the shops need
+  renderGame();
+}
 
 const dayPills = h('div', { class: 'daypills', 'aria-label': 'Ngày trong tuần' });
 const phaseEl = h('span', { class: 'phase' });
@@ -105,11 +161,17 @@ const saveEl = h('span', { class: 'savemark', title: 'Ván đấu được lưu 
 const speedWrap = h('span', { class: 'speedwrap' }, speedSelect());
 const soundBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Bật / tắt âm thanh', onclick: () => { setSound(!soundOn()); paintSound(); } });
 function paintSound() {
-  soundBtn.textContent = soundOn() ? '🔊' : '🔇';
+  soundBtn.replaceChildren(ic(soundOn() ? 'sound_on' : 'sound_off'));
   soundBtn.setAttribute('aria-pressed', soundOn() ? 'true' : 'false');
 }
 paintSound();
-const logBtn = h('button', { type: 'button', class: 'btn small icon logbtn', title: 'Nhật ký ván đấu', onclick: () => logPanel.toggle() }, '📜');
+const iconBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Đổi bộ icon (Briny / Emoji)', onclick: () => toggleIconSet() }, ic('iconset'));
+function toggleIconSet() {
+  const next = iconSet() === 'emoji' ? 'briny' : 'emoji';
+  setIconSet(next);
+  toast(next === 'emoji' ? 'Bộ icon: Emoji gốc.' : 'Bộ icon: Briny (vẽ riêng cho game).');
+}
+const logBtn = h('button', { type: 'button', class: 'btn small icon logbtn', title: 'Nhật ký ván đấu', onclick: () => logPanel.toggle() }, ic('log'));
 logPanel.onChange(({ open, unseen }) => {
   logBtn.classList.toggle('on', open);
   logBtn.classList.toggle('new', !open && unseen > 0);
@@ -126,19 +188,15 @@ const topbar = h(
   speedWrap,
   logBtn,
   soundBtn,
-  h('button', { type: 'button', class: 'btn small icon', title: 'Luật chơi', onclick: () => openHelp() }, '📖'),
-  h('button', { type: 'button', class: 'btn small icon', title: 'Về menu', onclick: () => goMenu() }, '☰'),
+  iconBtn,
+  h('button', { type: 'button', class: 'btn small icon', title: 'Luật chơi', onclick: () => openHelp() }, ic('rules')),
+  h('button', { type: 'button', class: 'btn small icon', title: 'Về menu', onclick: () => goMenu() }, ic('menu')),
 );
 const tableItems = h('div', { class: 'titems' });
 const lastLine = h('button', { type: 'button', class: 'lastline', title: 'Mở nhật ký', onclick: () => logPanel.toggle(true) });
 const tableInfo = h('div', { class: 'tableinfo' }, tableItems, lastLine);
-const gameEl = h(
-  'div',
-  { class: 'game' },
-  topbar,
-  h('div', { class: 'layout' }, h('div', { class: 'col-board' }, board.el), h('div', { class: 'col-main' }, decision.el, tableInfo, players.el)),
-  logPanel.el,
-);
+const layoutEl = h('div', { class: 'layout' }, h('div', { class: 'col-board' }, viewTabs, board.el, port.el), h('div', { class: 'col-main' }, decision.el, tableInfo, players.el));
+const gameEl = h('div', { class: 'game' }, topbar, layoutEl, logPanel.el);
 
 const BAG_DOT = { b: 'k-b', g: 'k-g', o: 'k-o' };
 let infoSig = '';
@@ -151,25 +209,25 @@ function renderTableInfo() {
     infoSig = sig;
     clear(tableItems);
     const pill = (icon, text, title, extra) => h('span', { class: 'stat', title }, h('i', null, icon), text !== null && text !== undefined ? h('b', null, String(text)) : null, extra || null);
-    const portBox = h('span', { class: 'stat port', title: port.length ? 'Thuyền đang ở cảng' : 'Chưa có thuyền nào ở cảng' }, h('i', null, '⚓'));
+    const portBox = h('span', { class: 'stat port', title: port.length ? 'Thuyền đang ở cảng' : 'Chưa có thuyền nào ở cảng' }, h('i', null, ic('port')));
     for (const c of port) portBox.append(h('span', { class: `boat mini${S.turn === c ? ' turn' : ''}${S.P[c].pass ? ' passed' : ''}`, style: { '--c': seatColor(c) }, title: SEAT[c].name }, SEAT[c].name.slice(0, 1)));
     if (!port.length) portBox.append(h('b', { class: 'dim' }, '–'));
     tableItems.append(portBox);
     tableItems.append(
-      pill('🃏', S.rd.length, `Bộ Regret: ${S.rd.length} lá còn lại · ${S.rx.length} đã bỏ`, S.rx.length ? h('small', null, `/${S.rx.length}`) : null),
-      pill('🧰', S.sd.length, 'Bộ Supply còn lại'),
-      pill('🎣', S.rod.length, 'Bộ Rod còn lại'),
-      pill('🌀', S.reel.length, 'Bộ Reel còn lại'),
-      pill('🎴', S.dk.length, 'Bộ Dink còn lại'),
+      pill(ic('regret'), S.rd.length, `Bộ Regret: ${S.rd.length} lá còn lại · ${S.rx.length} đã bỏ`, S.rx.length ? h('small', null, `/${S.rx.length}`) : null),
+      pill(ic('supply'), S.sd.length, 'Bộ Supply còn lại'),
+      pill(ic('rod'), S.rod.length, 'Bộ Rod còn lại'),
+      pill(ic('reel'), S.reel.length, 'Bộ Reel còn lại'),
+      pill(ic('dink'), S.dk.length, 'Bộ Dink còn lại'),
     );
     if (!solo) {
-      const bag = h('span', { class: 'stat bag', title: `Xúc xắc Tackle còn trong túi: Blue ${S.bag.b} · Green ${S.bag.g} · Orange ${S.bag.o}` }, h('i', null, '🎒'));
+      const bag = h('span', { class: 'stat bag', title: `Xúc xắc Tackle còn trong túi: Blue ${S.bag.b} · Green ${S.bag.g} · Orange ${S.bag.o}` }, h('i', null, ic('bag')));
       for (const k of ['b', 'g', 'o']) bag.append(h('span', { class: `die mini ${BAG_DOT[k]}` }, String(S.bag[k])));
       tableItems.append(bag);
     }
-    if (S.opt && S.opt.big && !solo) tableItems.append(pill('👑', S.bigd.length, 'Biggest Regrets chưa chia'));
-    if (S.lp) tableItems.append(pill('🛟', SEAT[S.lp].name, `Life Preserver: ${SEAT[S.lp].name}`));
-    if (S.plug) tableItems.append(pill('🔌', null, 'The Plug đang cắm: mỗi lượt hút 1 Fish góc trên-trái của Biển (bị bỏ)'));
+    if (S.opt && S.opt.big && !solo) tableItems.append(pill(ic('big'), S.bigd.length, 'Biggest Regrets chưa chia'));
+    if (S.lp) tableItems.append(pill(ic('lp'), SEAT[S.lp].name, `Life Preserver: ${SEAT[S.lp].name}`));
+    if (S.plug) tableItems.append(pill(ic('plug'), null, 'The Plug đang cắm: mỗi lượt hút 1 Fish góc trên-trái của Biển (bị bỏ)'));
   }
   // one-line ticker of the latest narration (full log is in the drawer)
   const e = logPanel.last();
@@ -236,15 +294,28 @@ function renderGame() {
   if (UI.hint && UI.hint.pr !== Game.prompt) UI.hint = null;
   const pr = Game.prompt;
   const pick = new Map();
+  const zonePick = new Map();
+  const zoneOff = new Map();
   let hintOpt = null;
   if (pr && pr.kind === 'pick' && !needsCurtain()) {
     pr.opts.forEach((o, i) => {
       if (o.shoal && !o.dis) pick.set(o.shoal[0] * 10 + o.shoal[1], i);
+      const z = zoneOf(o);
+      if (z && !o.dis) zonePick.set(z, i);
+      else if (z) zoneOff.set(z, o.sub || 'không dùng được lúc này');
     });
     if (UI.hint) hintOpt = UI.hint.ans;
   }
+  // a new prompt brings the table it is about to use into view
+  if (pr && pr !== lastPrompt) {
+    if (zonePick.size || zoneOff.size) activeView = 'port';
+    else if (pick.size) activeView = 'sea';
+  }
+  viewNeeds = { sea: pick.size > 0, port: zonePick.size > 0 };
   board.update({ shoalPick: pick, hintOpt, answer: (i) => actions.pick(i) });
-  players.update(viewerSeat(), seeAll(), pickContext(pr));
+  port.update({ zonePick, zoneOff, hintOpt, answer: (i) => actions.pick(i) });
+  renderViews();
+  players.update(viewerSeat(), seeAll(), pickContext(pr), activeView === 'port');
   logPanel.update();
   decision.update();
   renderTopbar();
@@ -302,7 +373,10 @@ function resetViews() {
   players.reset();
   logPanel.reset();
   board.reset();
+  port.reset();
   fx.reset();
+  activeView = 'sea';
+  viewNeeds = { sea: false, port: false };
 }
 
 function startGame(setupOverride) {
@@ -366,6 +440,11 @@ document.addEventListener('keydown', (e) => {
   if (t && (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA' || t.tagName === 'BUTTON')) return;
   if (document.querySelector('.modal-back')) return;
   const pr = Game.prompt;
+  if (e.key === 'Escape' && UI.pending) {
+    e.preventDefault();
+    actions.cancelPick();
+    return;
+  }
   if (e.key === 'Enter' && pr && pr.kind === 'pick' && !needsCurtain()) {
     const en = pr.opts.map((o, i) => (o.dis ? -1 : i)).filter((i) => i >= 0);
     if (en.length === 1) {

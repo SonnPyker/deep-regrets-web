@@ -7,7 +7,7 @@ import { D } from './data.js';
 import { Fx } from './fx.js';
 import { Fi } from './fish.js';
 import { Free, bigTier } from './free.js';
-import { Po } from './port.js';
+import { Po, SHOPS, SHOPNAME } from './port.js';
 
 const sgn = (n) => (n > 0 ? '+' : '') + n;
 
@@ -293,10 +293,10 @@ export const Fl = {
           for (let d = 1; d <= Math.min(3, p.dep); d++) {
             for (let col = 1; col <= 3; col++) {
               if (ok.has(d * 10 + col)) {
-                add(`c${d}${col}`, Fl.shoalLabel(d, col), 'Quăng câu (Depth I-III)', () => Fi.cast(me, d, col), false, { k: 'cast', shoal: [d, col] });
+                add(`c${d}${col}`, Fl.shoalLabel(d, col), 'Quăng câu (Depth I-III)', () => Fi.cast(me, d, col), false, { k: 'cast', shoal: [d, col], board: true });
               } else {
                 const n = S.sea[d - 1][col - 1].cards.length;
-                add(`c${d}${col}`, `${ROMAN[d - 1]}-${col}${n === 0 ? '  (trống)' : '  (bị khóa)'}`, 'Quăng câu (Depth I-III)', null, true, { k: 'cast', shoal: [d, col] });
+                add(`c${d}${col}`, `${ROMAN[d - 1]}-${col}${n === 0 ? '  (trống)' : '  (bị khóa)'}`, 'Quăng câu (Depth I-III)', null, true, { k: 'cast', shoal: [d, col], board: true });
               }
             }
           }
@@ -318,16 +318,31 @@ export const Fl = {
           );
         }
       } else {
+        const GRP_PORT = 'Hành động ở Cảng (một lần mỗi lượt)';
         const canSell = p.hand.some((id) => Rl.sellable(id));
         const slots = p.mount.filter((m) => !m).length;
         const canMount = canSell && slots > 0;
         const minCost = Math.max(0, 1 - Rl.mad(p).disc);
         let maxDisc = 0;
         for (const d of Po.discounts(me)) maxDisc += d.amt;
-        const canShop = minCost - maxDisc <= p.bucks && p.dy.shops.length < 4;
-        add('sell', 'Bán Fish', 'Hành động ở Cảng (một lần mỗi lượt)', async () => ((await Po.sell(me)) ? 'action' : null), !canSell, { k: 'sell' });
-        add('shop', 'Mua sắm', 'Hành động ở Cảng (một lần mỗi lượt)', async () => ((await Po.shop(me)) ? 'action' : null), !canShop, { k: 'shop' });
-        add('mount', 'Mount Fish', 'Hành động ở Cảng (một lần mỗi lượt)', async () => ((await Po.mount(me)) ? 'action' : null), !canMount, { k: 'mount' });
+        const canAfford = minCost - maxDisc <= p.bucks;
+        // Sell and the four shops are clicked on the Port board (board: true keeps them out of the panel)
+        add('sell', 'Bán Fish', GRP_PORT, async () => ((await Po.sell(me)) ? 'action' : null), !canSell, {
+          k: 'sell',
+          board: true,
+          sub: canSell ? null : 'không có Fish nào bán được',
+        });
+        for (const key of SHOPS) {
+          const [ok, why] = Po.shopAvail(me, key);
+          const dis = !ok || !canAfford;
+          add(`shop:${key}`, SHOPNAME[key], GRP_PORT, async () => ((await Po.shop(me, key)) ? 'action' : null), dis, {
+            k: 'shop',
+            shop: key,
+            board: true,
+            sub: dis ? (!ok ? why : 'không đủ tiền') : null,
+          });
+        }
+        add('mount', 'Mount Fish', GRP_PORT, async () => ((await Po.mount(me)) ? 'action' : null), !canMount, { k: 'mount' });
       }
       if (S.order.length > 1) {
         for (const id of p.hand) {
@@ -373,8 +388,10 @@ export const Fl = {
         await Fl.pass(me, true);
         return 'pass';
       }
+      const info = Fl.statusInfo(me);
+      if (opts.some((o) => o.board && !o.dis)) info.push(sea ? 'Bấm một Shoal sáng trên bàn để quăng câu.' : 'Bấm một tiệm hoặc Bán Fish trên bàn Cảng để mua hoặc bán.');
       const r = await Ask.pick(me, `${solo ? 'Cú quăng câu của bạn' : 'Lượt của bạn'} - ${Log.nm(me)}`, opts, {
-        info: Fl.statusInfo(me),
+        info,
         gcols: { 'Quăng câu (Depth I-III)': 3, 'Hành động ở Cảng (một lần mỗi lượt)': 3 },
         tag: 'turn',
       });

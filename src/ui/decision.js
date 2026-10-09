@@ -1,13 +1,15 @@
 // The decision panel: renders whatever the engine is asking (pick / multi), bot thinking, curtain, game over, errors.
 
 import { S } from '../engine/state.js';
-import { SEAT, ROMAN, Dc } from '../engine/core.js';
+import { SEAT, Dc } from '../engine/core.js';
 import { Game } from '../engine/game.js';
 import { h, append, clear } from './dom.js';
 import { card, die, refOf, seatChip, seatColor, tooltip, cardInfo, Zoom } from './art.js';
 import { UI, needsCurtain } from './store.js';
+import { ic } from './icons.js';
 
-const ICON = { lifeboat: '🚣', sell: '💰', shop: '🛒', mount: '🏆', give: '🎁', pass: '⏭️', eat: '🍴', dinkDis: '🎴', dinkDraw: '🎴', dinkDiff: '🎴', sup: '🧰', supDiff: '🧰', cloche: '🍽️', lp: '🛟', reel: '🌀', big: '👑', skull: '💀', coffin: '⚰️', sinkers: '⚓' };
+/** icon key of each action option kind */
+const ICON = { lifeboat: 'lifeboat', sell: 'sell', shop: 'shop', mount: 'mount', give: 'give', pass: 'pass', eat: 'eat', dinkDis: 'dink', dinkDraw: 'dink', dinkDiff: 'dink', sup: 'supply', supDiff: 'supply', cloche: 'cloche', lp: 'lp', reel: 'reel', big: 'big', skull: 'skull', coffin: 'coffin', sinkers: 'sinkers' };
 
 const TRAY_TAGS = new Set(['turn', 'pay', 'payDice', 'declare', 'dice', 'keepDice', 'spendDie', 'muster', 'reroll1']);
 
@@ -27,7 +29,7 @@ function thumb(kind, id) {
           Zoom.open(kind, id);
         },
       },
-      '🔍',
+      ic('zoom'),
     ),
   );
   return w;
@@ -39,12 +41,12 @@ function diceTray(color) {
   const fresh = p.dice.filter((d) => d.fr);
   const spent = p.dice.filter((d) => !d.fr);
   const t = h('div', { class: 'tray', style: { '--c': seatColor(color) } });
-  t.append(h('span', { class: 'lab', title: 'Xúc xắc Fresh của bạn' }, '🎲'));
+  t.append(h('span', { class: 'lab', title: 'Xúc xắc Fresh của bạn' }, ic('dice')));
   if (fresh.length) fresh.forEach((d) => t.append(die(d, 'big')));
   else t.append(h('span', { class: 'dim' }, 'hết xúc xắc Fresh'));
   t.append(h('span', { class: 'sum', title: 'Tổng các xúc xắc Fresh' }, `Σ ${Dc.freshSum(p)}`));
   if (spent.length) {
-    t.append(h('span', { class: 'lab sp', title: `${spent.length} xúc xắc Spent` }, '💤'));
+    t.append(h('span', { class: 'lab sp', title: `${spent.length} xúc xắc Spent` }, ic('spent')));
     spent.forEach((d) => t.append(die(d)));
   }
   return t;
@@ -63,27 +65,31 @@ function optBody(o) {
   return kids;
 }
 
-function castCell(pr, o, i, on) {
-  const [d, c] = o.shoal;
-  const sh = S.sea[d - 1][c - 1];
-  const n = sh.cards.length;
-  const b = h('button', { type: 'button', class: `cast${o.dis ? ' dis' : ''}${UI.hint && UI.hint.ans === i ? ' hint' : ''}`, disabled: o.dis, onclick: () => on(i) });
-  b.append(h('span', { class: 'cname' }, `${ROMAN[d - 1]}-${c}`));
-  if (sh.rev && n > 0) {
-    b.append(card('fish', sh.cards[0], { cls: 'thumb', zoom: false, title: '' }), h('span', { class: 'cnote' }, `${D_name(sh.cards[0])}`));
-  } else {
-    b.append(h('span', { class: 'cnote' }, n === 0 ? 'trống' : o.dis ? 'bị khóa' : `còn ${n} lá`));
-  }
-  if (n > 0 && !o.dis) b.append(h('span', { class: 'ccount' }, `×${n}`));
-  b.title = o.dis ? (n === 0 ? 'Shoal trống' : 'Không thể quăng câu vào Shoal này') : sh.rev && n > 0 ? `${D_name(sh.cards[0])} · còn ${n} lá` : `Quăng vào Shoal ${ROMAN[d - 1]}-${c} (còn ${n} lá, chưa lật)`;
-  return b;
+/** the confirmation of a pick, shown in the panel itself with the same section and bar as the multi-choice prompts (it used to be a pop-up) */
+function confirmBar(pr, i, act) {
+  return h(
+    'section',
+    { class: 'optgrp confirm', role: 'group', 'aria-label': 'Xác nhận lựa chọn' },
+    h('h3', null, 'Xác nhận'),
+    h(
+      'div',
+      { class: 'multibar' },
+      h('div', { class: 'cqopt' }, optBody(pr.opts[i])),
+      h(
+        'div',
+        { class: 'btnrow' },
+        h('button', { type: 'button', class: 'btn ghost', onclick: act.cancelPick }, 'Quay lại'),
+        h('button', { type: 'button', class: 'btn primary', onclick: act.confirmPick }, 'Chọn'),
+      ),
+    ),
+  );
 }
-const D_name = (id) => cardInfo('fish', id).name;
 
-function pickBody(pr, on) {
+function pickBody(pr, on, pend) {
   const wrap = h('div', { class: 'opts' });
   const groups = [];
   pr.opts.forEach((o, i) => {
+    if (o.board) return; // these are clicked on the board itself (Shoals, Port zones), see board.js / portboard.js
     const g = o.grp || '';
     let G = groups.find((x) => x.name === g);
     if (!G) {
@@ -99,29 +105,24 @@ function pickBody(pr, on) {
   for (const G of groups) {
     const sec = h('section', { class: 'optgrp' });
     if (G.name && !bar) sec.append(h('h3', null, G.name));
-    const isCast = G.idx.every((i) => pr.opts[i].k === 'cast' && pr.opts[i].shoal);
     const hasCards = G.idx.some((i) => refOf(pr.opts[i]) || (pr.opts[i].die && typeof pr.opts[i].die === 'object'));
     const cols = (pr.gcols && pr.gcols[G.name]) || pr.cols;
-    const acts = pr.tag === 'turn' && !isCast && !hasCards;
-    const intoBar = !!bar && !isCast && !hasCards;
-    const grid = intoBar ? barGrid : h('div', { class: `optgrid${isCast ? ' castgrid' : ''}${hasCards ? ' cardgrid' : ''}${acts ? ' actgrid' : ''}`, style: cols && !hasCards && !acts ? { '--cols': cols } : null });
+    const acts = pr.tag === 'turn' && !hasCards;
+    const intoBar = !!bar && !hasCards;
+    const grid = intoBar ? barGrid : h('div', { class: `optgrid${hasCards ? ' cardgrid' : ''}${acts ? ' actgrid' : ''}`, style: cols && !hasCards && !acts ? { '--cols': cols } : null });
     for (const i of G.idx) {
       const o = pr.opts[i];
-      if (isCast) {
-        grid.append(castCell(pr, o, i, on));
-        continue;
-      }
       const ref = refOf(o);
       const b = h(
         'button',
         {
           type: 'button',
-          class: `opt${acts ? ' act' : ''}${o.dis ? ' dis' : ''}${o.kind === 'pass' ? ' pass' : ''}${o.k ? ' k-' + o.k : ''}${UI.hint && UI.hint.ans === i ? ' hint' : ''}`,
+          class: `opt${acts ? ' act' : ''}${o.dis ? ' dis' : ''}${o.kind === 'pass' ? ' pass' : ''}${o.k ? ' k-' + o.k : ''}${UI.hint && UI.hint.ans === i ? ' hint' : ''}${pend === i ? ' pend' : ''}`,
           disabled: o.dis,
           title: ref ? tooltip(ref.kind, ref.id) : o.dis && o.sub ? o.sub : intoBar && G.name ? G.name : null,
           onclick: () => on(i),
         },
-        acts ? h('span', { class: 'aicon' }, ICON[o.k] || '✨') : null,
+        acts ? h('span', { class: 'aicon' }, ic(ICON[o.k] || 'sparkle')) : null,
         optBody(o),
       );
       grid.append(b);
@@ -172,7 +173,7 @@ function multiBody(pr, rerender, submit) {
             rerender();
           },
         },
-        h('span', { class: 'tick' }, on ? '✓' : ''),
+        h('span', { class: 'tick' }, on ? ic('check') : ''),
         optBody(o),
       ),
     );
@@ -305,11 +306,12 @@ export function createDecision(act) {
     }
 
     el.style.setProperty('--c', seatColor(pr.color));
+    const pend = pr.kind === 'pick' && UI.pending && UI.pending.pr === pr ? UI.pending.i : undefined;
     const tools = h(
       'div',
       { class: 'dtools' },
-      h('button', { type: 'button', class: 'btn small', title: 'Máy gợi ý một lựa chọn (không tự động chơi)', onclick: act.hint }, '💡 Gợi ý'),
-      Game.canUndo() ? h('button', { type: 'button', class: 'btn small', title: 'Quay lại quyết định trước của bạn', onclick: act.undo }, '↶ Hoàn tác') : null,
+      h('button', { type: 'button', class: 'btn small', title: 'Máy gợi ý một lựa chọn (không tự động chơi)', onclick: act.hint }, ic('hint'), ' Gợi ý'),
+      Game.canUndo() ? h('button', { type: 'button', class: 'btn small', title: 'Quay lại quyết định trước của bạn', onclick: act.undo }, ic('undo'), ' Hoàn tác') : null,
     );
     el.append(head(pr.title, pr.color, tools));
     if (pr.info && pr.info.length) {
@@ -340,7 +342,8 @@ export function createDecision(act) {
       el.append(gauge(m.sum, m.diff, m.exact), h('div', { class: `paymeta${m.can ? ' ok' : ' no'}` }, m.can ? 'Xúc xắc Fresh của bạn đủ để bắt Fish này.' : 'Xúc xắc Fresh hiện chưa đủ để bắt Fish này.'));
     }
     if (pr.kind === 'pick') {
-      el.append(pickBody(pr, (i) => act.pick(i)));
+      if (pend !== undefined) el.append(confirmBar(pr, pend, act));
+      el.append(pickBody(pr, (i) => act.pick(i), pend));
     } else {
       el.append(multiBody(pr, act.refresh, (v) => act.submit(v)));
     }
@@ -357,6 +360,7 @@ export function createDecision(act) {
       pr ? needsCurtain() : '',
       UI.hint ? UI.hint.ans + '|' + (UI.hint.multi || '') : '',
       multiSel,
+      pr && UI.pending && UI.pending.pr === pr ? 'c' + UI.pending.i : '',
       Game.canUndo() ? 'u' : '',
     ].join('/');
     if (key === lastKey) return;
