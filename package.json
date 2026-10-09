@@ -1,0 +1,16 @@
+{
+  "name": "deep-regrets-web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deep Regrets - full-auto web edition (decision-driven, text-RPG style)",
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "test": "node tests/run.mjs 30 && node tests/cards.mjs all 2 && node tests/game.mjs",
+    "serve": "node serve.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}
