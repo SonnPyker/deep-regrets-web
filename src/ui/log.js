@@ -5,11 +5,12 @@ import { RT } from '../engine/state.js';
 import { DAYS } from '../engine/core.js';
 import { h, clear } from './dom.js';
 import { seatColor } from './art.js';
+import { ic } from './icons.js';
 
 export function createLog() {
   const list = h('div', { class: 'loglist', tabindex: '0', role: 'log', 'aria-label': 'Nhật ký ván đấu' });
-  const closeBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Đóng nhật ký', onclick: () => toggle(false) }, '✕');
-  const el = h('section', { class: 'logpanel', 'aria-hidden': 'true' }, h('header', null, h('h3', null, '📜 Nhật ký'), closeBtn), list);
+  const closeBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Đóng nhật ký', onclick: () => toggle(false) }, ic('close'));
+  const el = h('section', { class: 'logpanel', 'aria-hidden': 'true' }, h('header', null, h('h3', null, ic('log'), ' Nhật ký'), closeBtn), list);
   let shown = 0;
   let first = null;
   let lastDay = 0;

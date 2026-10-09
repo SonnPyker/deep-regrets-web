@@ -10,6 +10,7 @@ export const UI = {
   viewer: null, // seat whose private information is shown (hot-seat)
   hint: null, // { seq, ans } suggestion for the current prompt
   multi: null, // { seq, sel:Set } selection of the current multi prompt
+  pending: null, // { pr, i } a pick the player clicked and has not confirmed yet (the confirm bar in the panel)
   endShown: false,
   endOpen: false,
   prefs: {
@@ -20,6 +21,8 @@ export const UI = {
     short: false,
     seed: '',
     sound: true,
+    confirm: true, // ask once before a click on the table or in the panel is carried out
+    icons: 'briny', // icon set: 'briny' (drawn for this game) or 'emoji'
   },
 };
 

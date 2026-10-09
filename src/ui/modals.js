@@ -5,6 +5,7 @@ import { SEAT, TIERS, ROMAN, Rl } from '../engine/core.js';
 import { D } from '../engine/data.js';
 import { h } from './dom.js';
 import { card, cardInfo, src, Zoom, seatChip, seatColor } from './art.js';
+import { ic } from './icons.js';
 
 const stack = [];
 
@@ -46,7 +47,8 @@ export function closeAllModals() {
   while (stack.length) stack[stack.length - 1].close();
 }
 
-export function confirmDialog({ title, text, ok = 'Đồng ý', cancel = 'Hủy', danger }) {
+/** `safe`: focus the cancel button, so a stray Enter does not confirm the action */
+export function confirmDialog({ title, text, ok = 'Đồng ý', cancel = 'Hủy', danger, safe }) {
   return new Promise((resolve) => {
     let done = false;
     const fin = (v) => {
@@ -55,7 +57,7 @@ export function confirmDialog({ title, text, ok = 'Đồng ý', cancel = 'Hủy'
         resolve(v);
       }
     };
-    openModal({
+    const m = openModal({
       title,
       body: h('p', { class: 'confirm-text' }, text),
       onClose: () => fin(false),
@@ -64,6 +66,7 @@ export function confirmDialog({ title, text, ok = 'Đồng ý', cancel = 'Hủy'
         h('button', { type: 'button', class: `btn primary${danger ? ' danger' : ''}`, onclick: () => { fin(true); close(); } }, ok),
       ],
     });
+    if (safe) m.el.querySelector('.mfoot .btn:not(.primary)')?.focus({ preventScroll: true });
   });
 }
 
@@ -129,13 +132,17 @@ export function openHelp() {
     ),
     sec(
       'Hành động ở Biển',
-      h('p', null, h('b', null, 'Quăng câu: '), 'chọn một Shoal ở Depth không sâu hơn thuyền. Fish trên cùng được lật (kích hoạt Reveal), rồi bạn trả Difficulty bằng xúc xắc Fresh (tổng ≥ Difficulty; xúc xắc đã dùng chuyển sang Spent). Trả đủ thì bắt được Fish (kích hoạt Catch, Fish vào tay). Không trả nổi/không muốn: dùng 1 xúc xắc, rút 1 Dink và Fish nằm ngửa ở lại Shoal.'),
+      h('p', null, h('b', null, 'Quăng câu: '), 'bấm thẳng vào một Shoal sáng trên bàn Biển (Depth không sâu hơn thuyền của bạn). Fish trên cùng được lật (kích hoạt Reveal), rồi bạn trả Difficulty bằng xúc xắc Fresh (tổng ≥ Difficulty; xúc xắc đã dùng chuyển sang Spent). Trả đủ thì bắt được Fish (kích hoạt Catch, Fish vào tay). Không trả nổi/không muốn: dùng 1 xúc xắc, rút 1 Dink và Fish nằm ngửa ở lại Shoal.'),
       h('p', null, h('b', null, 'Hành động tự do: '), 'ăn Fish (Eat, trừ/tăng Regret), dùng Dink, Supply, Rod, Reel, Thả chì (xuống Depth sâu hơn), xem lén...'),
       h('p', null, h('b', null, 'Abandon Ship: '), 'một lần mỗi ván, lật Lifeboat và về Cảng (+10 Regret Value).'),
     ),
     sec(
       'Hành động ở Cảng',
-      h('p', null, h('b', null, 'Bán Fish: '), 'đổi Fish lấy Fishbucks ($). ', h('b', null, 'Mua sắm: '), 'Rod, Reel, Supply hoặc xúc xắc Tackle (giá phụ thuộc Madness và Dink giảm giá). ', h('b', null, 'Mount: '), 'gắn Fish lên tường vào 3 ô nhân ×2 / ×3 / ×2 (mỗi ô một Fish) để ghi điểm gấp nhiều lần.'),
+      h('p', null, 'Khi thuyền vào Cảng, chuyển sang tab Cảng trên bàn và bấm thẳng vào khu muốn dùng:'),
+      h('p', null, h('b', null, 'Chợ cá (Bán Fish): '), 'đổi Fish lấy Fishbucks ($).'),
+      h('p', null, h('b', null, 'Tiệm Rod, Reel, Supply, xúc xắc Tackle (Mua sắm): '), 'mỗi tiệm một lần mỗi ngày; chọn mức giá (giá phụ thuộc Madness, dùng Dink giảm giá nếu có). Kho còn lại được ghi trên từng tiệm.'),
+      h('p', null, h('b', null, 'Mount: '), 'gắn Fish lên tường vào 3 ô nhân ×2 / ×3 / ×2 (mỗi ô một Fish) để ghi điểm gấp nhiều lần; chọn ngay trong bảng của bạn.'),
+      h('p', null, 'Mỗi lượt chỉ làm một hành động ở Cảng.'),
     ),
     sec('Regret & Madness', h('p', null, 'Mỗi lá Regret bạn giữ làm bạn điên hơn: Fair Fish đáng giá ít đi, Foul Fish đáng giá nhiều hơn (tới mức nhất định), nhưng bạn được dùng nhiều xúc xắc Fresh hơn.'), madness),
     sec(
@@ -149,7 +156,17 @@ export function openHelp() {
     ),
     sec(
       'Cách chơi trên máy',
-      h('p', null, 'Mọi thao tác kéo thả được tự động hóa: bạn chỉ cần chọn ở bảng quyết định. Bấm vào Shoal sáng trên bàn để quăng câu nhanh, bấm 🔍 hoặc vào lá bài để xem chi tiết, dùng 💡 để xem máy gợi ý và ↶ để hoàn tác quyết định của mình. Ván chơi được lưu tự động.'),
+      h(
+        'p',
+        null,
+        'Mọi thao tác kéo thả được tự động hóa: bạn chỉ cần chọn trên bàn hoặc ở bảng quyết định. Quăng câu và các khu ở Cảng được bấm trực tiếp trên bàn. Bấm ',
+        ic('zoom'),
+        ' hoặc vào lá bài để xem chi tiết, ',
+        ic('hint'),
+        ' để xem máy gợi ý và ',
+        ic('undo'),
+        ' để hoàn tác quyết định của mình. Hành động trong lượt chờ bạn bấm Chọn để xác nhận (có thể tắt trong menu). Ván chơi được lưu tự động.',
+      ),
     ),
   );
   openModal({ title: 'Luật chơi Deep Regrets', body, wide: true });
@@ -186,7 +203,7 @@ export function openResults(actions) {
     body = h(
       'div',
       { class: 'results' },
-      h('div', { class: 'winner' }, h('span', { class: 'trophy' }, '🏆'), h('div', null, h('b', null, `${names} chiến thắng!`), h('small', null, `Regret Value cao nhất: ${r.hiReg}`))),
+      h('div', { class: 'winner' }, h('span', { class: 'trophy' }, ic('trophy')), h('div', null, h('b', null, `${names} chiến thắng!`), h('small', null, `Regret Value cao nhất: ${r.hiReg}`))),
       h(
         'div',
         { class: 'tblwrap' },
@@ -206,7 +223,7 @@ export function openResults(actions) {
     body = h(
       'div',
       { class: 'results solo' },
-      h('div', { class: 'winner' }, h('span', { class: 'trophy' }, '🎣'), h('div', null, h('b', null, `Bạn mang về ${r.kept.length} Fish trị giá ${r.total}`), h('small', null, `Regret Value của bạn: ${r.regV}${r.plug ? ' · The Plug đã bị cắm' : ''}`))),
+      h('div', { class: 'winner' }, h('span', { class: 'trophy' }, ic('rod')), h('div', null, h('b', null, `Bạn mang về ${r.kept.length} Fish trị giá ${r.total}`), h('small', null, `Regret Value của bạn: ${r.regV}${r.plug ? ' · The Plug đã bị cắm' : ''}`))),
       r.jet.length ? h('p', null, h('b', null, 'Đã ném bỏ: '), r.jet.join(', ')) : h('p', { class: 'dim' }, 'Không phải ném bỏ Fish nào.'),
       r.kept.length ? kept : null,
       h('p', null, 'Hãy dùng số điểm này để mở khóa trang bị trên tờ Survey của bạn:'),

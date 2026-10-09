@@ -5,6 +5,7 @@ import { SEAT, ROMAN } from '../engine/core.js';
 import { D } from '../engine/data.js';
 import { h, clear } from './dom.js';
 import { card, seatColor, Zoom } from './art.js';
+import { ic } from './icons.js';
 
 // positions measured on assets/board/thebrinydeep.webp (1100 x 1484), in percent
 const COLS = [
@@ -105,7 +106,7 @@ export function createBoard(onGraveyard) {
                 Zoom.open('fish', top);
               },
             },
-            '🔍',
+            ic('zoom'),
           ),
         );
       }
