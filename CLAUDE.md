@@ -9,7 +9,9 @@ npm install            # only esbuild is a dependency
 npm run build          # bundle src/ui/main.js -> dist/app.js (minified IIFE + sourcemap)
 npm run watch          # same bundle, unminified, rebuilds on change
 npm run serve          # static server on http://localhost:5173 (node serve.mjs <port> to change port)
-npm test               # run.mjs 30 && cards.mjs all 2 && game.mjs
+npm run server         # co-op server on http://localhost:8787 (env: PORT, ALLOWED_ORIGINS, SUPABASE_*; see README)
+npm run site           # static site into public/ for Vercel (needs DR_API_URL; the build bakes it in)
+npm test               # run.mjs 30 && cards.mjs all 2 && game.mjs && coop.mjs
 ```
 
 No linter or typechecker is configured.
@@ -87,6 +89,13 @@ Engine code is async and never talks to the UI. To ask a player, it calls `Ask.p
 - the tackle dice total is not 9/8/7 (non-solo);
 - the Regret total is not 60 (solo) or 10 per player;
 - state does not round-trip through JSON.
+
+### Co-op server
+
+- `server/` runs `src/engine` on Node. One room's game lives in memory at a time (serial queue in `rooms.mjs`). Rooms and answers persist in Supabase (`supabase/schema.sql`) when `SUPABASE_URL` is set, otherwise in memory (`store.mjs`).
+- The stored answer record is the source of truth. Each client replays it in remote mode (`Game.attach` and `Game.remote` in `engine/game.js`, driven by `src/ui/online.js` and `src/ui/net.js`). The server checks each human answer against its seat and decides bot seats itself.
+- `tests/coop.mjs` (part of `npm test`) runs an in-process server with two client processes (`tests/coop-client.mjs`).
+- Deploy: `render.yaml` (server); `vercel.json` + `scripts/publish-site.mjs` (site, needs `DR_API_URL`).
 
 ## Gotchas
 

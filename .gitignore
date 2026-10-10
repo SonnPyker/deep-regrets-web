@@ -9,6 +9,9 @@ node_modules/
 # so index.html works when opened directly from disk)
 dist/*.map
 
+# Static site copied by scripts/publish-site.mjs (Vercel's output directory)
+/public/
+
 # Local editor / Claude Code settings (launch.json stays tracked)
 .claude/settings.local.json
 .claude/worktrees/

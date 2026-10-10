@@ -1,6 +1,7 @@
 {
   "version": "0.0.1",
   "configurations": [
-    { "name": "deep-regret", "runtimeExecutable": "node", "runtimeArgs": ["serve.mjs"], "port": 5173 }
+    { "name": "deep-regret", "runtimeExecutable": "node", "runtimeArgs": ["serve.mjs"], "port": 5173 },
+    { "name": "coop-server", "runtimeExecutable": "node", "runtimeArgs": ["server/index.mjs"], "port": 8787 }
   ]
 }

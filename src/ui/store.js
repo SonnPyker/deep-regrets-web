@@ -23,6 +23,7 @@ export const UI = {
     sound: true,
     confirm: true, // ask once before a click on the table or in the panel is carried out
     icons: 'briny', // icon set: 'briny' (drawn for this game) or 'emoji'
+    onlineName: '', // name shown to the other players of an online room
   },
 };
 
@@ -48,8 +49,9 @@ export function savePrefs() {
 
 export const humans = () => (S.order ? S.order.filter((c) => S.seats[c] === 'human') : []);
 
-/** seat whose private cards are visible right now (null = nobody) */
+/** seat whose private cards are visible right now (null = nobody). Online it is the seat of this browser. */
 export function viewerSeat() {
+  if (Game.remote) return Game.remote.seat;
   const hs = humans();
   if (hs.length === 1) return hs[0];
   if (hs.length > 1) return UI.viewer && hs.includes(UI.viewer) ? UI.viewer : null;
@@ -58,11 +60,13 @@ export function viewerSeat() {
 
 /** true when every hidden card may be shown (spectating bots, or the game is over) */
 export function seeAll() {
+  if (Game.remote) return S.ph === 'over' || Game.over;
   return humans().length === 0 || S.ph === 'over' || Game.over;
 }
 
-/** hot-seat: a prompt for another human needs the "pass the device" curtain first */
+/** hot-seat: a prompt for another human needs the "pass the device" curtain first. Online every player has a device. */
 export function needsCurtain() {
+  if (Game.remote) return false;
   const pr = Game.prompt;
   if (!pr) return false;
   if (humans().length < 2) return false;
