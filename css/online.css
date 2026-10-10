@@ -1,0 +1,76 @@
+/* Online co-op screens (src/ui/online.js): room browser, lobby and the room line in the top bar. */
+
+.online .roomhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.online .roomhead small {
+  display: block;
+}
+.online .code {
+  font-size: 26px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+.online .panel p {
+  margin: 0;
+}
+.online .btnrow {
+  align-items: center;
+  justify-content: flex-start;
+}
+.online .panel .btnrow small {
+  word-break: break-all;
+}
+
+.conn {
+  font-size: 13px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.conn.on {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+.conn.off {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+.seatcard.mine {
+  box-shadow: 0 0 0 3px rgba(242, 184, 75, 0.45);
+}
+.seatcard .seatinfo .btnrow {
+  justify-content: flex-start;
+}
+
+.roomlist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.roomitem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.roomitem .code {
+  font-size: 18px;
+}
+
+.waitq {
+  margin: 0 0 4px;
+  color: var(--dim);
+  font-size: 14px;
+}

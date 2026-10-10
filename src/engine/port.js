@@ -193,96 +193,76 @@ export const Po = {
     U.shuffle(deck);
   },
 
-  /** returns true if a purchase was made (counts as the action) */
-  async shop(me) {
+  /** buy at the Shop the player clicked on the Port board: returns true if a purchase was made (counts as the action) */
+  async shop(me, key) {
     const p = S.P[me];
     const mad = Rl.mad(p);
+    const disc = Po.discounts(me);
+    let maxDisc = 0;
+    for (const d of disc) maxDisc += d.amt;
+    const info = [`Bạn có ${p.bucks}$.`];
+    if (mad.disc > 0) info.push('Madness: mọi tiệm rẻ hơn 1$.');
+    for (const d of disc) info.push(`Giảm giá có thể dùng: ${d.label}`);
     for (;;) {
-      const disc = Po.discounts(me);
-      let maxDisc = 0;
-      for (const d of disc) maxDisc += d.amt;
-      const info = [`Bạn có ${p.bucks}$.`];
-      if (mad.disc > 0) info.push('Madness: mọi tiệm rẻ hơn 1$.');
-      for (const d of disc) info.push(`Giảm giá có thể dùng: ${d.label}`);
-      const opts = [];
-      for (const key of SHOPS) {
-        const [ok, why] = Po.shopAvail(me, key);
-        let lab = SHOPNAME[key];
-        if (!ok) lab += ` (${why})`;
-        opts.push({ id: key, label: lab, dis: !ok, grp: 'Chọn tiệm', shop: key });
-      }
-      opts.push({ id: 'back', label: 'Quay lại', kind: 'cancel' });
-      const key = await Ask.pick(me, 'Cửa hàng', opts, { info, cols: 2, tag: 'shop' });
-      if (key === null || key === 'back') return false;
-
-      let tierPick = null;
-      for (;;) {
-        const o2 = [];
-        for (let t = 1; t <= 3; t++) {
-          const base = Math.max(0, PRICE[t - 1] - mad.disc);
-          o2.push({
-            id: t,
-            label: `$${base}${base !== PRICE[t - 1] ? ` (gốc ${PRICE[t - 1]})` : ''}: ${DESC[key][t - 1]}`,
-            dis: base - maxDisc > p.bucks,
-          });
-        }
-        o2.push({ id: 'back', label: 'Quay lại', kind: 'cancel' });
-        const t = await Ask.pick(me, `${SHOPNAME[key]}: bạn trả bao nhiêu?`, o2, { info, tag: 'shopTier' });
-        if (t === null || t === 'back') break;
-
+      const o2 = [];
+      for (let t = 1; t <= 3; t++) {
         const base = Math.max(0, PRICE[t - 1] - mad.disc);
-        let cost = base;
-        const used = [];
-        if (disc.length > 0 && base > 0) {
-          const items = disc.map((d, i) => ({ id: i, label: d.label, ...(d.kind === 'dink' ? { dink: d.id } : {}) }));
-          const init = [];
-          if (base > p.bucks) {
-            let sum = 0;
-            disc.forEach((d, i) => {
-              if (base - sum > p.bucks) {
-                init.push(i);
-                sum += d.amt;
-              }
-            });
-          }
-          const ch = await Ask.multi(me, `Trả ${base}$ - dùng giảm giá nào?`, items, {
-            init,
-            okLabel: 'Trả tiền',
-            cancel: 'Quay lại',
-            tag: 'discount',
-            ok: (sel) => {
-              let s = 0;
-              for (const i of sel) s += disc[i].amt;
-              const c = Math.max(0, base - s);
-              return { ok: p.bucks >= c, msg: `Giá ${c}$ (bạn có ${p.bucks}$)` };
-            },
+        o2.push({
+          id: t,
+          label: `$${base}${base !== PRICE[t - 1] ? ` (gốc ${PRICE[t - 1]})` : ''}: ${DESC[key][t - 1]}`,
+          dis: base - maxDisc > p.bucks,
+        });
+      }
+      o2.push({ id: 'back', label: 'Quay lại', kind: 'cancel' });
+      const t = await Ask.pick(me, `${SHOPNAME[key]}: bạn trả bao nhiêu?`, o2, { info, tag: 'shopTier' });
+      if (t === null || t === 'back') return false;
+
+      const base = Math.max(0, PRICE[t - 1] - mad.disc);
+      let cost = base;
+      const used = [];
+      if (disc.length > 0 && base > 0) {
+        const items = disc.map((d, i) => ({ id: i, label: d.label, ...(d.kind === 'dink' ? { dink: d.id } : {}) }));
+        const init = [];
+        if (base > p.bucks) {
+          let sum = 0;
+          disc.forEach((d, i) => {
+            if (base - sum > p.bucks) {
+              init.push(i);
+              sum += d.amt;
+            }
           });
-          if (ch) {
-            let s = 0;
-            for (const i of ch) {
-              s += disc[i].amt;
-              used.push(disc[i]);
-            }
-            cost = Math.max(0, base - s);
-            tierPick = t;
-          }
-        } else {
-          tierPick = t;
         }
-        if (tierPick !== null) {
-          for (const d of used) {
-            if (d.kind === 'lp') S.lp = false;
-            else {
-              U.rm(p.dinks, d.id);
-              S.dk.push(d.id);
-            }
-          }
-          p.bucks -= cost;
-          Log.say(me, `ghé ${SHOPNAME[key]} và trả ${cost}$${used.length > 0 ? ` (dùng ${used.length} giảm giá)` : ''}.`);
-          await Po.doShop(me, key, tierPick);
-          return true;
+        const ch = await Ask.multi(me, `Trả ${base}$ - dùng giảm giá nào?`, items, {
+          init,
+          okLabel: 'Trả tiền',
+          cancel: 'Quay lại',
+          tag: 'discount',
+          ok: (sel) => {
+            let s = 0;
+            for (const i of sel) s += disc[i].amt;
+            const c = Math.max(0, base - s);
+            return { ok: p.bucks >= c, msg: `Giá ${c}$ (bạn có ${p.bucks}$)` };
+          },
+        });
+        if (!ch) continue; // cancelled: back to the price list
+        let s = 0;
+        for (const i of ch) {
+          s += disc[i].amt;
+          used.push(disc[i]);
+        }
+        cost = Math.max(0, base - s);
+      }
+      for (const d of used) {
+        if (d.kind === 'lp') S.lp = false;
+        else {
+          U.rm(p.dinks, d.id);
+          S.dk.push(d.id);
         }
       }
+      p.bucks -= cost;
+      Log.say(me, `ghé ${SHOPNAME[key]} và trả ${cost}$${used.length > 0 ? ` (dùng ${used.length} giảm giá)` : ''}.`);
+      await Po.doShop(me, key, t);
+      return true;
     }
   },
 

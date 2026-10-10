@@ -5,6 +5,7 @@ import { Game } from '../engine/game.js';
 import { h, clear } from './dom.js';
 import { seatColor } from './art.js';
 import { UI, savePrefs } from './store.js';
+import { ICON_SETS, iconSet, setIconSet } from './icons.js';
 
 export const SPEEDS = [
   ['Chậm', 900],
@@ -25,7 +26,7 @@ export function speedSelect(onChange) {
   return sel;
 }
 
-export function createMenu({ onStart, onContinue, onHelp }) {
+export function createMenu({ onStart, onContinue, onOnline, onHelp }) {
   const el = h('main', { class: 'menu' });
 
   function seatCard(c) {
@@ -67,6 +68,30 @@ export function createMenu({ onStart, onContinue, onHelp }) {
     return h('label', { class: 'toggle', for: id }, cb, h('span', { class: 'tbox' }), h('span', null, h('b', null, title), h('small', null, desc)));
   }
 
+  function iconSetField() {
+    const cur = iconSet();
+    const seg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Bộ icon' });
+    for (const s of ICON_SETS) {
+      seg.append(
+        h(
+          'button',
+          {
+            type: 'button',
+            role: 'radio',
+            'aria-checked': cur === s.id ? 'true' : 'false',
+            class: cur === s.id ? 'on' : '',
+            onclick: () => {
+              setIconSet(s.id);
+              render();
+            },
+          },
+          s.label,
+        ),
+      );
+    }
+    return h('div', { class: 'field' }, h('span', null, 'Bộ icon'), seg, h('small', null, 'Briny là bộ icon vẽ riêng cho game. Đổi ngay, không cần tải lại trang.'));
+  }
+
   function render() {
     clear(el);
     const active = COLORS.filter((c) => UI.prefs.seats[c] !== 'off');
@@ -103,6 +128,7 @@ export function createMenu({ onStart, onContinue, onHelp }) {
           toggle('tent', 'Lamentable Tentacles', 'Thêm các Fish của bản mở rộng Lamentable Tentacles'),
           toggle('big', 'Biggest Regrets', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Mỗi người nhận một lá Biggest Regret với khả năng thay đổi theo số Regret'),
           toggle('short', 'Ván ngắn', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Bắt đầu từ Thứ Ba (5 ngày thay vì 6)'),
+          toggle('confirm', 'Hỏi xác nhận trước khi chọn', 'Hành động trong lượt (nút hành động, bắn câu, bán và mua ở Port) phải bấm Chọn để xác nhận, tránh bấm nhầm. Các bước chọn bên trong một hành động vẫn làm ngay.'),
         ),
         h(
           'div',
@@ -124,6 +150,7 @@ export function createMenu({ onStart, onContinue, onHelp }) {
             h('small', null, 'Cùng hạt giống và cùng lựa chọn sẽ cho ra cùng một ván bài.'),
           ),
           h('div', { class: 'field' }, h('span', null, 'Tốc độ máy'), speedSelect()),
+          iconSetField(),
         ),
       ),
     );
@@ -131,6 +158,7 @@ export function createMenu({ onStart, onContinue, onHelp }) {
     const info = Game.hasSave() ? Game.saveInfo() : null;
     const actions = h('div', { class: 'menu-actions' });
     actions.append(h('button', { type: 'button', class: 'btn primary xl', disabled: active.length === 0, onclick: () => onStart() }, 'Bắt đầu ván mới'));
+    actions.append(h('button', { type: 'button', class: 'btn xl', onclick: () => onOnline() }, 'Chơi chung online', h('small', null, 'Mỗi người một máy, cùng một ván đấu')));
     if (info) {
       actions.append(
         h(

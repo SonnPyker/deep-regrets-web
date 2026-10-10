@@ -3,7 +3,7 @@
 // It never touches the game: it only reads S / RT and adds short-lived elements to a fixed overlay.
 
 import { S, RT } from '../engine/state.js';
-import { DAYS, Rl } from '../engine/core.js';
+import { DAYS, Rl, Dc } from '../engine/core.js';
 import { h } from './dom.js';
 import { play } from './sfx.js';
 import { src, backSrc, seatColor } from './art.js';
@@ -51,13 +51,15 @@ function snapshot() {
       dep: p.dep,
       dice: p.dice.map((d) => ({ k: d.k, v: d.v, fr: d.fr })),
       turn: S.turn === c,
+      shops: p.dy ? p.dy.shops.length : 0,
     };
   }
   const sea = S.sea.map((row) => row.map((sh) => ({ n: sh.cards.length, rev: !!sh.rev, top: sh.cards.length ? sh.cards[0] : 0 })));
-  return { day: S.day, ph: S.ph, seats, sea, gy: S.gy.map((g) => g.length), dk: S.dk.length, logN: RT.log.length };
+  const stock = { rod: S.rod.length, reel: S.reel.length, sup: S.sd.length, dice: Dc.bagCount() };
+  return { day: S.day, ph: S.ph, seats, sea, stock, gy: S.gy.map((g) => g.length), dk: S.dk.length, logN: RT.log.length };
 }
 
-export function createFx({ board, panelOf, humans }) {
+export function createFx({ board, port, panelOf, humans }) {
   const layer = h('div', { class: 'fxlayer', 'aria-hidden': 'true' });
   let prev = null;
 
@@ -73,7 +75,8 @@ export function createFx({ board, panelOf, humans }) {
   }
 
   function fly(from, to, imgSrc, big) {
-    if (!from || !to || reduced()) return;
+    // a hidden board has no size: nothing to fly from or to
+    if (!from || !to || !from.width || !to.width || reduced()) return;
     const w = big ? 86 : 64;
     const ht = Math.round(w * 1.405);
     const img = h('img', { class: 'ghost', src: imgSrc, alt: '', style: { left: from.left + from.width / 2 - w / 2 + 'px', top: from.top + from.height / 2 - ht / 2 + 'px', width: w + 'px', height: ht + 'px' } });
@@ -191,6 +194,25 @@ export function createFx({ board, panelOf, humans }) {
     });
     // cards that appeared without leaving a shoal (hand/mount from elsewhere): small pop at the panel is enough
     for (const t of gained) if (t.n > 0 && !removed.length) sounds.add('catch');
+
+    // Port: a shop sold cards to whoever just visited it, and a sale moved Fish from a hand to the fish market
+    const bought = Object.keys(cur.stock).find((k) => cur.stock[k] < old.stock[k]);
+    for (const c of S.order) {
+      const a = cur.seats[c];
+      const b = old.seats[c];
+      if (!b) continue;
+      const panel = panelOf(c);
+      const to = panel && panel.getBoundingClientRect();
+      if (bought && a.shops > b.shops) {
+        if (bought === 'dice') floaty('+xúc xắc', to, 'good');
+        else fly(port.zoneRect(bought), to, backSrc(bought), false);
+        sounds.add('coin');
+      }
+      if (a.loc === 'port' && a.cards < b.cards && a.bucks > b.bucks) {
+        fly(to, port.zoneRect('sell'), backSrc('fish', 1), false);
+        sounds.add('coin');
+      }
+    }
 
     const order = ['day', 'regret', 'mad', 'catch', 'flip', 'roll', 'splash', 'coin', 'turn'];
     const first = order.find((s) => sounds.has(s));

@@ -1,0 +1,22 @@
+# Render Blueprint for the co-op server (server/index.mjs).
+# In Render: New > Blueprint, then pick this repo. The secrets are marked sync: false, so Render asks for
+# their values in the dashboard. They are never written to git.
+services:
+  - type: web
+    name: deep-regret-coop
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run server
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Comma-separated web origins allowed to call the server, e.g. https://deep-regret.vercel.app (no trailing slash).
+      - key: ALLOWED_ORIGINS
+        sync: false
+      # Supabase project. Without these two, rooms are kept in memory and are lost on restart.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

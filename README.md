@@ -39,6 +39,48 @@ Khi sửa code trong `src/`, chạy `npm run watch` để tự build lại, ho�
 - Bố cục gọn, ít phải cuộn: trên desktop cả bàn chơi, hộp quyết định, thông tin bàn và người chơi nằm vừa một màn hình; chỉ số hiển thị bằng icon + số (rê chuột để xem giải thích), nhật ký nằm trong ngăn kéo 📜 (dòng mới nhất luôn hiện ở thanh thông tin), trên điện thoại người chơi là dải vuốt ngang.
 - Giao diện tiếng Việt, hiển thị tốt trên desktop và điện thoại.
 
+## Chơi chung online (co-op)
+
+Mỗi người chơi trên máy riêng, cùng một ván. Kiến trúc:
+
+- **Vercel**: giao diện tĩnh (`index.html`, `css/`, `dist/`), build bằng `scripts/publish-site.mjs`.
+- **Render**: máy chủ co-op (`server/`, Node + WebSocket), chạy bằng `npm run server`.
+- **Supabase**: lưu phòng, token ghế (đã băm) và bản ghi quyết định (`supabase/schema.sql`).
+
+Máy chủ không giữ trạng thái ván. Nó ghi lại mọi quyết định vào một bản ghi duy nhất, và mỗi máy tự chạy lại ván từ bản ghi đó
+bằng cùng bộ luật trong `src/engine`. Ghế máy do máy chủ quyết định.
+
+### Chạy thử trên máy
+
+```bash
+npm install
+npm run server      # máy chủ tại http://localhost:8787 (không có Supabase thì phòng nằm trong bộ nhớ)
+npm run serve       # giao diện tại http://localhost:5173
+```
+
+Mở hai cửa sổ trình duyệt: một bên bấm **Tạo phòng**, bên kia nhập mã phòng.
+
+### Triển khai
+
+1. **Supabase**: tạo project, mở SQL Editor, chạy nội dung `supabase/schema.sql`. Lấy `Project URL` và khóa `service_role`
+   (Project Settings → API). Khóa này bí mật: chỉ đặt trong Render, không đưa vào mã nguồn hay trình duyệt.
+2. **Render**: New → Blueprint, chọn repo này (đọc `render.yaml`). Điền ba biến: `ALLOWED_ORIGINS` (địa chỉ Vercel, ví dụ
+   `https://deep-regret.vercel.app`), `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY`. Khi deploy xong, mở
+   `https://<tên-dịch-vụ>.onrender.com/healthz`: phải thấy `{"ok":true,"store":"supabase"}`.
+3. **Vercel**: Add New → Project, chọn repo. Cấu hình build đã nằm trong `vercel.json`. Thêm biến môi trường `DR_API_URL`
+   = địa chỉ Render (không có dấu `/` cuối), rồi deploy lại nếu đổi biến.
+
+Mọi địa chỉ Vercel (kể cả preview) phải nằm trong `ALLOWED_ORIGINS` thì máy chủ mới nhận kết nối từ địa chỉ đó.
+
+### Giới hạn
+
+- **Không có hình ảnh** trên bản Vercel: `assets/` không nằm trong git. Đưa hình lên trang công khai là phân phối lại tài sản
+  có bản quyền. `INCLUDE_ASSETS=1 npm run site` chỉ copy `assets/` vào `public/` khi bạn tự quyết định làm vậy.
+- **Render gói miễn phí** tự ngủ sau 15 phút không có truy cập; lần vào đầu tiên có thể chậm vài chục giây.
+- **Một máy chủ, mỗi tiến trình giữ một ván một lúc.** Chạy nhiều bản sao cần thiết kế lại phần phòng.
+- **Bảo mật mức giao diện**: mọi máy đều có hạt giống của ván (giống chơi hot-seat), nên đây không phải cơ chế chống gian lận.
+  Token ghế lưu trong `localStorage`: ai có token thì giữ được ghế đó. Chưa có giới hạn tốc độ tạo phòng.
+
 ## Cấu trúc thư mục
 
 ```
@@ -55,6 +97,11 @@ tests/        kiểm thử tự động
 build.mjs     script build bằng esbuild
 serve.mjs     máy chủ tĩnh để chơi local
 index.html    trang chính
+server/       máy chủ co-op: app.mjs (HTTP + WebSocket), rooms.mjs (phòng, ghế, quyết định), store.mjs (bộ nhớ hoặc Supabase)
+supabase/     schema.sql cho các bảng của máy chủ co-op
+scripts/      publish-site.mjs (build bản Vercel vào public/)
+render.yaml   cấu hình Render cho máy chủ co-op
+vercel.json   cấu hình build Vercel cho giao diện
 ```
 
 ## Kiểm thử
@@ -65,6 +112,8 @@ npm test
 
 Chạy hàng trăm ván ngẫu nhiên đủ 1-5 người (kèm kiểm tra phát lại cho cùng kết quả), thử từng lá Fish/Dink/Supply/Rod/Reel/Biggest Regret,
 và kiểm thử controller (hoàn tác, lưu/tải, ghế người xen kẽ máy).
+`tests/coop.mjs` khởi động máy chủ thật với hai tiến trình người chơi, kiểm tra kết nối lại, và xác nhận máy chủ
+từ chối câu trả lời không hợp lệ hoặc token sai.
 
 ## Ghi chú
 
