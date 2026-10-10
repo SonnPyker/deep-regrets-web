@@ -2,8 +2,10 @@
 
 import { S } from '../engine/state.js';
 import { Game } from '../engine/game.js';
+import { readSurvey } from '../engine/survey.js';
 
 const PREFS_KEY = 'deepregrets.prefs.v1';
+const SURVEY_KEY = 'deepregrets.survey.v1';
 
 export const UI = {
   screen: 'menu', // menu | game
@@ -44,6 +46,25 @@ export function savePrefs() {
     localStorage.setItem(PREFS_KEY, JSON.stringify(UI.prefs));
   } catch {
     /* ignore */
+  }
+}
+
+/** the Ocean Survey sheet of the solo campaign (kept across games and sessions in this browser) */
+export function loadSurvey() {
+  let raw = null;
+  try {
+    raw = JSON.parse(localStorage.getItem(SURVEY_KEY));
+  } catch {
+    /* blocked or corrupt: start a fresh sheet */
+  }
+  return readSurvey(raw);
+}
+
+export function saveSurvey(sv) {
+  try {
+    localStorage.setItem(SURVEY_KEY, JSON.stringify(sv));
+  } catch {
+    /* ignore: the sheet is kept for this session only */
   }
 }
 

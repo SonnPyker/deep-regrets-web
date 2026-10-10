@@ -6,7 +6,8 @@ import { Game } from '../engine/game.js';
 import { Bot } from '../engine/bot.js';
 import { h, clear, frameThrottle, toast } from './dom.js';
 import { seatColor, refOf } from './art.js';
-import { UI, loadPrefs, viewerSeat, seeAll, needsCurtain, humans, parseSeed } from './store.js';
+import { kitOf, record } from '../engine/survey.js';
+import { UI, loadPrefs, viewerSeat, seeAll, needsCurtain, humans, parseSeed, loadSurvey, saveSurvey } from './store.js';
 import { createBoard } from './board.js';
 import { createPortBoard, zoneOf } from './portboard.js';
 import { createPlayers } from './players.js';
@@ -17,6 +18,7 @@ import { play, soundOn, setSound, unlockOnGesture } from './sfx.js';
 import { createMenu, speedSelect } from './menu.js';
 import { createOnline } from './online.js';
 import { openGraveyard, openHelp, openResults, closeAllModals, confirmDialog } from './modals.js';
+import { openSurveyBoard, settlePanel } from './survey.js';
 import { ic, paintIcons, setIconSet, iconSet } from './icons.js';
 
 const app = document.getElementById('app');
@@ -178,6 +180,7 @@ logPanel.onChange(({ open, unseen }) => {
   logBtn.classList.toggle('new', !open && unseen > 0);
   logBtn.dataset.n = unseen > 9 ? '9+' : String(unseen || '');
 });
+const surveyBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Bảng Ocean Survey', onclick: () => openSurveyBoard() }, ic('fish'));
 const topbar = h(
   'header',
   { class: 'topbar' },
@@ -190,6 +193,7 @@ const topbar = h(
   logBtn,
   soundBtn,
   iconBtn,
+  surveyBtn,
   h('button', { type: 'button', class: 'btn small icon', title: 'Luật chơi', onclick: () => openHelp() }, ic('rules')),
   h('button', { type: 'button', class: 'btn small icon', title: 'Về menu', onclick: () => goMenu() }, ic('menu')),
 );
@@ -251,6 +255,7 @@ function renderTopbar() {
   phaseEl.textContent = `${DAYS[S.day - 1] || ''} · ${PHASES[S.ph] || ''}${turn}`;
   const anyBot = S.order.some((c) => S.seats[c] === 'bot');
   speedWrap.style.display = anyBot ? '' : 'none';
+  surveyBtn.style.display = S.mode === 'solo' ? '' : 'none';
   saveEl.textContent = Game.remote ? online.info() : Game.hasSave() ? '● đã lưu' : '';
   document.title = `Deep Regrets · ${DAYS[S.day - 1] || ''}`;
 }
@@ -326,6 +331,8 @@ function renderGame() {
   if (Game.over && S.res && !UI.endShown) {
     UI.endShown = true;
     play('win');
+    // the solo week joins the sheet before the save is dropped, so a reload in between replays it and records it then
+    if (S.res.mode === 'solo') saveSurvey(record(loadSurvey(), S.res));
     Game.clearSave();
     showResults();
   }
@@ -337,6 +344,7 @@ function renderGame() {
 }
 
 function showResults() {
+  if (S.mode === 'solo' && S.res && S.res.mode === 'solo') return showSoloResults();
   // an online game cannot be replayed here: the next game is started from the room
   openResults((close) => [
     h('button', { type: 'button', class: 'btn', onclick: close }, 'Xem lại bàn'),
@@ -345,12 +353,25 @@ function showResults() {
   ]);
 }
 
+/** a solo week ends on the purchase: its Fish and the unlocks are settled here, then the menu shows the sheet */
+function showSoloResults() {
+  let modal = null;
+  const panel = settlePanel(loadSurvey(), {
+    onDone: () => {
+      if (modal) modal.close();
+      goMenu(true);
+    },
+  });
+  modal = openResults((close) => [h('button', { type: 'button', class: 'btn', onclick: close }, 'Xem lại bàn')], { panel });
+}
+
 // SCREENS -------------------------------------------------------------------------------------------------
 const menu = createMenu({
   onStart: () => startGame(),
   onContinue: () => continueGame(),
   onOnline: () => show('online'),
   onHelp: () => openHelp(),
+  onSurvey: () => openSurveyBoard({ onDone: () => menu.render() }),
 });
 
 const online = createOnline({
@@ -400,7 +421,17 @@ function startGame(setupOverride) {
     if (!colors.length) return;
     for (const c of colors) seats[c] = UI.prefs.seats[c];
     const multi = colors.length > 1;
-    setup = { colors, opts: { tent: UI.prefs.tent, big: multi && UI.prefs.big, short: multi && UI.prefs.short, seed: parseSeed(UI.prefs.seed), seats } };
+    setup = { colors, opts: { tent: multi && UI.prefs.tent, big: multi && UI.prefs.big, short: multi && UI.prefs.short, seed: parseSeed(UI.prefs.seed), seats } };
+  }
+  if (setup.colors.length === 1) {
+    // solo is the Ocean Survey campaign: the last week is settled on the sheet first, and the game starts with the unlocked kit
+    const sv = loadSurvey();
+    if (sv.pending) {
+      toast('Hãy ghi tuần trước vào Survey trước khi bắt đầu tuần mới.');
+      openSurveyBoard({ onDone: () => menu.render() });
+      return;
+    }
+    setup = { ...setup, opts: { ...setup.opts, kit: kitOf(sv) } };
   }
   closeAllModals();
   resetViews();

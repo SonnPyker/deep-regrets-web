@@ -11,7 +11,7 @@ npm run watch          # same bundle, unminified, rebuilds on change
 npm run serve          # static server on http://localhost:5173 (node serve.mjs <port> to change port)
 npm run server         # co-op server on http://localhost:8787 (env: PORT, ALLOWED_ORIGINS, SUPABASE_*; see README)
 npm run site           # static site into public/ for Vercel (needs DR_API_URL; the build bakes it in)
-npm test               # run.mjs 30 && cards.mjs all 2 && game.mjs && coop.mjs
+npm test               # run.mjs 30 && cards.mjs all 2 && game.mjs && survey.mjs && coop.mjs
 ```
 
 No linter or typechecker is configured.
@@ -23,6 +23,7 @@ There is no per-test filter. Narrow the run through script arguments:
 - `node tests/run.mjs 6 stats` - N seeds x 1-5 players of random games, each replayed to check determinism. `stats` prints per-prompt counts.
 - `node tests/smoke.mjs <seed> <players>` - one random game, prints the result.
 - `node tests/game.mjs` - controller level: bot-only games, resume, mixed human/bot with undo, replay equality.
+- `node tests/survey.mjs` - Ocean Survey (solo campaign): sheet rules, the kit a game starts with, three weeks in a row.
 
 To debug one card, edit the targeted tests in `tests/cards.mjs` rather than the random runner.
 
