@@ -153,11 +153,15 @@ function renderViews() {
   tabSea.classList.toggle('need', viewNeeds.sea && !sea);
   tabPort.classList.toggle('need', viewNeeds.port && sea);
   layoutEl.classList.toggle('port-view', !sea);
+  // a prompt that needs a click on the table this view shows: on a phone the table moves up above the decision
+  layoutEl.classList.toggle('table-first', sea ? viewNeeds.sea : viewNeeds.port);
 }
 function setView(v) {
   activeView = v;
   // the panels follow the table too: at the Port they keep only what the shops need
   renderGame();
+  // on a phone the table can sit below the decision: its tab then brings the table up under the tabs
+  if (window.innerWidth < 1000 && !layoutEl.classList.contains('table-first')) (v === 'port' ? port : board).el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 const dayPills = h('div', { class: 'daypills', 'aria-label': 'Ngày trong tuần' });
@@ -202,6 +206,8 @@ const topbar = h(
   h('button', { type: 'button', class: 'btn small icon', title: 'Về menu', onclick: () => goMenu() }, ic('menu')),
 );
 labelIcons(topbar);
+// the top bar wraps by width, so its height is measured: on a phone the table's tabs stick just under it
+new ResizeObserver(() => document.documentElement.style.setProperty('--bar-h', topbar.offsetHeight + 'px')).observe(topbar);
 const tableItems = h('div', { class: 'titems' });
 const lastLine = h('button', { type: 'button', class: 'lastline', title: 'Mở nhật ký', onclick: () => logPanel.toggle(true) });
 const tableInfo = h('div', { class: 'tableinfo' }, tableItems, lastLine);
@@ -301,6 +307,7 @@ function pickContext(pr) {
 }
 
 let lastPrompt = null;
+let lastPending = null;
 function renderGame() {
   if (!S.order || !S.P) return;
   if (UI.hint && UI.hint.pr !== Game.prompt) UI.hint = null;
@@ -343,9 +350,18 @@ function renderGame() {
     showResults();
   }
   if (pr && pr !== lastPrompt && window.innerWidth < 1000) {
-    const r = decision.el.getBoundingClientRect();
-    if (r.top < 60 || r.top > window.innerHeight * 0.6) decision.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // the element the prompt needs first: the table when it is on top (see renderViews), else the decision
+    const first = layoutEl.classList.contains('table-first') ? (activeView === 'port' ? port.el : board.el) : decision.el;
+    const r = first.getBoundingClientRect();
+    if (r.top < 60 || r.top > window.innerHeight * 0.6) first.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
+  // a pick waiting for its confirm button: that bar sits in the decision, under the table, so on a phone it is brought into view
+  const pending = UI.pending && UI.pending.pr === pr ? UI.pending : null;
+  if (pending && pending !== lastPending && window.innerWidth < 1000) {
+    const bar = decision.el.querySelector('.optgrp.confirm');
+    if (bar) bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  lastPending = pending;
   lastPrompt = pr;
 }
 

@@ -2189,12 +2189,44 @@ input[type='text'] {
     flex: 0 0 min(92%, 430px);
     scroll-snap-align: start;
   }
+  /* the table's tabs and boards are laid out with the panels, so the tabs can stick under the top bar */
   .col-board {
+    display: contents;
+  }
+  .viewtabs {
+    order: 0;
+    position: sticky;
+    top: var(--bar-h, 0px);
+    z-index: 3;
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto 6px;
+    padding: 4px 0;
+    background: var(--bg);
+  }
+  .board {
     order: 4;
-    position: static;
     width: 100%;
     max-width: 560px;
     margin: 0 auto;
+    scroll-margin-top: calc(var(--bar-h, 0px) + 60px);
+  }
+  /* a prompt that needs a click on the table brings the table up under the tabs, so nobody scrolls past the decision to reach it */
+  .layout.table-first .board {
+    order: 1;
+  }
+  .layout.table-first .decision {
+    order: 2;
+  }
+  .layout.table-first .tableinfo {
+    order: 3;
+  }
+  .layout.table-first .players {
+    order: 4;
+  }
+  /* the confirm bar that a board pick opens is scrolled into view with a little room below it */
+  .optgrp.confirm {
+    scroll-margin-bottom: 16px;
   }
   .topbar {
     padding: 6px 10px;
@@ -2235,6 +2267,28 @@ input[type='text'] {
   }
   .player {
     flex-basis: 94%;
+  }
+}
+/* touch screens: the few small targets get a finger-sized hit area, and the look stays the same */
+@media (pointer: coarse) {
+  button,
+  .pick {
+    touch-action: manipulation;
+  }
+  .vtab {
+    min-height: 44px;
+  }
+  .lastline {
+    min-height: 36px;
+  }
+  /* a graveyard is a 16px dot on a phone's board: its hit area reaches past the dot, to the left and up and down */
+  .grave::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    bottom: -10px;
+    left: -10px;
+    right: 0;
   }
 }
 @media (prefers-reduced-motion: reduce) {
