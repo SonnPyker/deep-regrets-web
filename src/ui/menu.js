@@ -5,7 +5,6 @@ import { Game } from '../engine/game.js';
 import { progress } from '../engine/survey.js';
 import { h, clear } from './dom.js';
 import { seatColor } from './art.js';
-import { openGuide } from './modals.js';
 import { UI, savePrefs, loadSurvey, loadSlots } from './store.js';
 import { SAVE_MODES, SAVE_SLOTS } from '../engine/saves.js';
 import { ICON_SETS, iconSet, setIconSet } from './icons.js';
@@ -184,13 +183,12 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey, on
     );
     const used = Object.values(loadSlots()).flat().filter(Boolean).length;
     actions.append(h('button', { type: 'button', class: 'btn xl', onclick: () => onSaves() }, 'Ván đã lưu', h('small', null, `${used}/${SAVE_MODES.length * SAVE_SLOTS} ô đã dùng`)));
-    actions.append(h('button', { type: 'button', class: 'btn ghost xl', onclick: () => openGuide() }, 'Hướng dẫn nhanh'));
     actions.append(h('button', { type: 'button', class: 'btn ghost xl', onclick: () => onHelp() }, 'Luật chơi'));
     el.append(actions);
     el.append(h('footer', { class: 'credit' }, 'Bản làm lại không chính thức của boardgame Deep Regrets, dùng hình ảnh từ bản Tabletop Simulator có sẵn trên máy bạn.'));
-    // first visit only: the guide opens once, then it is reached from its button
+    // first visit only: the rules open once, then they are reached from their button
     if (!UI.prefs.guideSeen) {
-      openGuide();
+      onHelp();
       UI.prefs.guideSeen = true;
       savePrefs();
     }

@@ -28,7 +28,7 @@ export const UI = {
     confirm: true, // ask once before a click on the table or in the panel is carried out
     icons: 'briny', // icon set: 'briny' (drawn for this game) or 'emoji'
     onlineName: '', // name shown to the other players of an online room
-    guideSeen: false, // the first-run guide has been shown once (menu.js)
+    guideSeen: false, // the rules have opened once on the first visit (menu.js)
   },
 };
 

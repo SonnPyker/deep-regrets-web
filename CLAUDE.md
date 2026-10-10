@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm install            # only esbuild is a dependency
+npm install            # esbuild (dev bundler) and ws (co-op server)
 npm run build          # bundle src/ui/main.js -> dist/app.js (minified IIFE + sourcemap)
 npm run watch          # same bundle, unminified, rebuilds on change
 npm run serve          # static server on http://localhost:5173 (node serve.mjs <port> to change port)
@@ -25,6 +25,7 @@ There is no per-test filter. Narrow the run through script arguments:
 - `node tests/game.mjs` - controller level: bot-only games, resume, mixed human/bot with undo, replay equality.
 - `node tests/survey.mjs` - Ocean Survey (solo campaign): sheet rules, the kit a game starts with, three weeks in a row.
 - `node tests/saves.mjs` - save slots: a resumed save ends like the live game, `Game.verify` keeps an in-progress game, `readSave` rejects bad files.
+- `node tests/bench.mjs [games=300] [players=3] [mixed|allbot|allrandom]` - bot benchmark on seeded games, one JSON summary on stdout. Not part of `npm test`; the file header lists the options.
 
 To debug one card, edit the targeted tests in `tests/cards.mjs` rather than the random runner.
 
@@ -85,6 +86,14 @@ Engine code is async and never talks to the UI. To ask a player, it calls `Ask.p
 - Icons: use `ic(key)` from `icons.js`. Two icon sets exist (`briny`, default; `emoji`).
 - In the browser console, `window.DR` exposes `Game`, `S`, `UI` and `humans` for debugging.
 
+### Layout and responsive
+
+- `css/style.css` holds the breakpoints. Desktop is `min-width: 1001px` with `min-height: 621px`: the window never scrolls, and regions scroll inside themselves. `max-width: 1000px` is the phone and tablet layout: one column, panels moved with `order`, and `display: contents` on `.col-main` and `.col-board`. `max-width: 520px` tightens text and cards. `pointer: coarse` gives touch targets a larger hit area.
+- A prompt that needs a tap on the table sets `.layout.table-first` (`renderViews` in `src/ui/main.js`, from `viewNeeds`), which moves the table above the decision. A new panel needs an `order` in both the phone block and the `table-first` block.
+- Modals: `.modal-back` is a grid, so its column must stay `minmax(0, 1fr)` and `.modal` keeps `min-width: 0`. Without these, the widest content (the 8-column results table) sets the column width and pushes the modal past a 375px screen. Wide tables scroll inside `.tblwrap`.
+- Check a layout change in the browser at 375x812 and at 1280x800. `document.documentElement.scrollWidth` should equal the viewport width, so the page has no horizontal scroll. Use a second origin (`127.0.0.1` instead of `localhost`) when the saved game in the first one matters.
+- To reach the results screen quickly, set every seat to Máy and run `DR.Game.speed = 0` in the console. A bot-only game then finishes in seconds.
+
 ### Test invariants
 
 `check()` in `tests/harness.mjs` runs after prompts and fails with `INVARIANT:` when:
@@ -103,7 +112,7 @@ Engine code is async and never talks to the UI. To ask a player, it calls `Ask.p
 
 ## Gotchas
 
-- `dist/app.js` is committed and `index.html` loads it, so rebuild after any `src/` change. Otherwise the page runs stale code.
+- `dist/app.js` is committed and `index.html` loads it, so rebuild after any `src/` change. Otherwise the page runs stale code. `css/` is served as-is, so CSS changes need no rebuild.
 - `assets/` is gitignored because it is copyrighted artwork. The tests don't need it, but the game screens do.
 - Game and UI text is Vietnamese. Code comments and identifiers are English.
 - An `invalid answer` or `invalid multi answer` error means the driver sent an answer that doesn't match the prompt. Investigate the prompt's `opts`/`items`/`check`, not the driver.
