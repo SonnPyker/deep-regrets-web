@@ -85,12 +85,16 @@ function shopWant(p) {
   return want;
 }
 
-function decideTurn(pr) {
+function decideTurn(pr, peek) {
   const me = pr.color;
   const p = S.P[me];
   const key = `${me}:${S.day}`;
-  const n = (loops.get(key) || 0) + 1;
-  loops.set(key, n);
+  // a peek is a single hint call: it counts as no loop, so the forced pass below never fires for it
+  let n = 0;
+  if (!peek) {
+    n = (loops.get(key) || 0) + 1;
+    loops.set(key, n);
+  }
   const ens = enabled(pr);
   const passI = ens.find(([o]) => o.k === 'pass');
   if (n > 80 && passI) return passI[1];
@@ -172,14 +176,14 @@ function decidePay(pr) {
   return firstEnabled(pr);
 }
 
-function decidePick(pr) {
+function decidePick(pr, peek) {
   const me = pr.color;
   const p = S.P[me];
   const en = enabled(pr);
   if (en.length === 0) return 0;
   switch (pr.tag) {
     case 'turn':
-      return decideTurn(pr);
+      return decideTurn(pr, peek);
     case 'declare':
       return decideDeclare(pr);
     case 'pay':
@@ -378,8 +382,10 @@ function decideMulti(pr) {
 }
 
 export const Bot = {
-  decide(pr) {
-    return pr.kind === 'multi' ? decideMulti(pr) : decidePick(pr);
+  // Peek contract: decide(pr, { peek: true }) is a hint and never changes bot state (no loop count, no forced pass).
+  decide(pr, opts) {
+    const peek = !!(opts && opts.peek);
+    return pr.kind === 'multi' ? decideMulti(pr) : decidePick(pr, peek);
   },
   reset() {
     loops.clear();

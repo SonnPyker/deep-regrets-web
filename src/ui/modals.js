@@ -179,6 +179,97 @@ export function openHelp() {
   openModal({ title: 'Luật chơi Deep Regrets', body, wide: true });
 }
 
+// FIRST-RUN GUIDE ----------------------------------------------------------------------------------------
+// English words the Vietnamese UI shows. A definition is given only where the rule text in the engine says what the term does;
+// a null definition lists the term alone.
+const GLOSSARY = [
+  ['Regret', 'hối tiếc, lá bài bạn tích lũy trong ván. Số lá quyết định Madness; tổng giá trị các lá là Regret Value.'],
+  ['Pass', 'không làm thêm hành động chính trong ngày. Nhiều người chơi: nhận phần thưởng (1 Dink hoặc bỏ 1 Regret ngẫu nhiên). Chơi một mình: kết thúc ngày.'],
+  ['Refresh (Muster Courage)', 'đầu ngày, tung lại xúc xắc Spent và có thể tung lại vài xúc xắc Fresh; số Fresh giữ lại tối đa theo Madness, phần dư thành Spent.'],
+  ['Life Preserver', 'người có tổng xúc xắc Fresh cao nhất đầu ngày chuyển nó cho người khác. Người giữ được giảm 2$ khi mua ở Cảng, hoặc bỏ đi để giảm Difficulty 2. Chỉ có khi nhiều người chơi.'],
+  ['First Player', 'nhiều người chơi: người đi trước trong ngày; từ ngày thứ hai chuyển sang người kế tiếp.'],
+  ['Reel in', 'nhiều người chơi, từ ngày thứ hai: đầu ngày mọi thuyền ở Biển được kéo lên 1 Depth.'],
+  ['Depth', 'tầng Biển I-III. Bạn chỉ câu được Shoal ở tầng không sâu hơn thuyền của mình; Thả chì để xuống thêm một tầng.'],
+  ['Make Port', 'đưa thuyền vào Cảng. Khi vào, tung lại xúc xắc (Muster) và có thể bỏ 1 Regret.'],
+  ['Abandon Ship', 'nhiều người chơi, hành động ở Biển, mỗi ván một lần: lật Lifeboat, vào Cảng ngay và cộng 10 Regret Value.'],
+  ['Lifeboat', 'lá đánh dấu đã dùng Abandon Ship; khi đã lật thì cộng 10 vào Regret Value.'],
+  ['Regret Value', 'tổng giá trị các lá Regret, cộng 10 nếu đã lật Lifeboat. Nhiều người chơi: khi kết thúc, người có Regret Value cao nhất (kể cả hòa) phải bỏ một Fish đã Mount.'],
+  ['Shoal', 'ô Fish trên bàn Biển; Fish trên cùng là Fish bạn câu được.'],
+  ['Reveal', 'khi quăng câu, lật Fish trên cùng của Shoal (nếu đang úp), kích hoạt hiệu ứng lật của Fish.'],
+  ['Difficulty', 'tổng xúc xắc Fresh tối thiểu để bắt Fish. Rod, Dink, Supply và Life Preserver có thể giảm nó.'],
+  ['Catch', 'bắt Fish khi đã trả đủ Difficulty; hiệu ứng khi bắt được kích hoạt, rồi Fish vào tay (trừ khi hiệu ứng bỏ nó).'],
+  ['Fresh', 'xúc xắc sẵn sàng dùng; số lượng tối đa theo Madness.'],
+  ['Spent', 'xúc xắc đã dùng; đến Refresh sẽ được tung lại.'],
+  ['Tackle', 'xúc xắc Blue, Green, Orange. Mua ở Tiệm xúc xắc hoặc lấy từ túi vào Thứ Bảy; dùng xong quay về túi (trừ khi chơi một mình).'],
+  ['Fair / Foul', 'hai loại Fish. Nhiều người chơi: khi số Regret tăng, Fair Fish giá trị giảm còn Foul Fish tăng. Bán một Foul Fish làm bạn rút thêm 1 Regret.'],
+  ['Madness', 'nhiều người chơi: mức điên loạn theo số lá Regret. Mức cao hơn cho phép dùng nhiều xúc xắc Fresh hơn; từ 13 Regret trở lên, tiệm rẻ hơn 1$.'],
+  ['Overfishing', 'bắt Fish cuối cùng của một Shoal thì rút 1 Regret.'],
+  ['Fishbucks ($)', 'tiền có được khi bán Fish, tối đa 10$. Mỗi 2$ = 1 điểm lúc tính điểm; chơi một mình không tính.'],
+  ['Mount', 'gắn Fish lên một trong ba ô tường ×2, ×3, ×2. Đã Mount thì không dời được; tính điểm khi kết thúc.'],
+  ['Shop', 'tiệm ở Cảng: Rod, Reel, Supply, xúc xắc Tackle. Mỗi tiệm ghé một lần mỗi ngày.'],
+  ['Dink', 'lá dùng một lần, nhận khi Pass hoặc khi bỏ cuộc một lần câu. Có loại giảm giá ở tiệm, giảm Difficulty khi đang trả, hoặc rút/bỏ Regret.'],
+  ['Supply', 'vật phẩm mua ở Tiệm Supply, dùng một lần.'],
+  ['Rod / Reel', 'Rod chọn mỗi ngày, một số Rod giảm Difficulty. Reel có năng lực riêng, một số dùng được một lần mỗi ngày.'],
+  ['Cloche', 'Supply: Mount một Fish nhỏ lên đó (ô ×2, vĩnh viễn).'],
+  ['Can of Worms', 'khi lật ngửa (Thứ Tư, Thứ Sáu hoặc khi Make Port), trước khi lật một Shoal bạn được xem lén Fish trên cùng và có thể đẩy nó xuống đáy. Không dùng khi chơi một mình.'],
+  ['Omen', 'xúc xắc Omen (mặt 1-4), nhận khi bắt Amulet of Agartha (kèm rút 3 Regret); một lúc chỉ một người giữ.'],
+  ['The Plug', 'khi đã cắm, mỗi lượt một Fish ở góc trên-trái của Biển bị bỏ.'],
+  ['Overmind', 'Fish phải được Mount ngay khi vào Cảng (Make Port), nếu còn ô trống.'],
+  ['Eat', 'ăn Fish trên tay như hành động tự do (không dùng khi chơi một mình).'],
+  ['Small / Middling / Large', 'cỡ Fish. Một số Rod chỉ giảm Difficulty cho một cỡ.'],
+  ['Ocean Survey', 'chế độ một người: mỗi ván là một tuần 5 ngày với 60 lá Regret. Fish mang về ghi vào tờ Survey để mở khóa trang bị cho các ván sau.'],
+  ['Lamentable Tentacles / Biggest Regrets', 'hai bản mở rộng, bật trong mục Tùy chọn ở menu. Biggest Regrets: mỗi người một lá, khả năng đổi theo số Regret.'],
+  ['Tên lá bài: Whispering Skull, Iron Coffin, Bone Wheel, Rod of the Infinite, Reel of Fortune', null],
+];
+
+/** first visit: the rules in a few steps, then the glossary. Opened from the menu (menu.js). */
+export function openGuide() {
+  const sec = (title, ...kids) => h('section', { class: 'guide-sec' }, h('h3', null, title), ...kids);
+  const body = h(
+    'div',
+    { class: 'guide' },
+    sec(
+      '1. Mỗi ngày',
+      h(
+        'ul',
+        null,
+        h('li', null, 'Trong phần hành động, đến lượt bạn thì chọn một hành động chính hoặc Pass trong hộp quyết định. Hành động tự do (ăn Fish, Dink, Supply...) làm thêm được trong lượt.'),
+        h('li', null, 'Các lượt tiếp tục cho đến khi mọi người Pass. Khi chỉ còn một người chưa Pass, người đó được thêm hai lượt rồi ngày kết thúc.'),
+      ),
+    ),
+    sec(
+      '2. Biển và Cảng',
+      h(
+        'ul',
+        null,
+        h('li', null, h('b', null, 'Biển: '), 'bấm một Shoal sáng trên bàn để quăng câu. Fish trên cùng được lật; trả Difficulty bằng xúc xắc Fresh để bắt. Không trả được thì dùng một xúc xắc và rút một Dink, Fish ở lại Shoal.'),
+        h('li', null, h('b', null, 'Cảng: '), 'bấm Bán Fish để đổi Fish lấy Fishbucks ($); bấm một tiệm để mua Rod, Reel, Supply hoặc xúc xắc Tackle; chọn Mount trong hộp quyết định để gắn Fish lên tường.'),
+      ),
+    ),
+    sec(
+      '3. Kết thúc ván',
+      h(
+        'ul',
+        null,
+        h('li', null, 'Ván kết thúc sau ngày cuối (Thứ Bảy; chơi một mình là Thứ Sáu) hoặc khi Biển hết Fish.'),
+        h('li', null, 'Nhiều người chơi: điểm = Fish trên tay + Fish đã Mount (nhân theo ô ×2, ×3, ×2) + Fishbucks (mỗi 2$ = 1 điểm).'),
+        h('li', null, 'Regret không trừ điểm trực tiếp, nhưng nhiều Regret làm Fair Fish đáng ít đi và Foul Fish đáng nhiều hơn. Người có Regret Value cao nhất phải bỏ một Fish đã Mount.'),
+      ),
+    ),
+    h(
+      'section',
+      { class: 'guide-sec guide-gloss' },
+      h('h3', null, 'Thuật ngữ tiếng Anh'),
+      h(
+        'ul',
+        null,
+        GLOSSARY.map(([term, def]) => h('li', null, h('b', null, term), def ? `: ${def}` : null)),
+      ),
+    ),
+  );
+  openModal({ title: 'Hướng dẫn nhanh', body });
+}
+
 // RESULTS ------------------------------------------------------------------------------------------------
 /** extra.panel: the Ocean Survey purchase of a solo week (survey.js), shown under the Fish brought back */
 export function openResults(actions, extra = {}) {

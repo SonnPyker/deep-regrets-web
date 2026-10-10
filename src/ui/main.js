@@ -4,7 +4,7 @@ import { S } from '../engine/state.js';
 import { COLORS, SEAT, DAYS } from '../engine/core.js';
 import { Game } from '../engine/game.js';
 import { Bot } from '../engine/bot.js';
-import { h, clear, frameThrottle, toast } from './dom.js';
+import { h, clear, frameThrottle, toast, labelIcons, installTapTitles } from './dom.js';
 import { seatColor, refOf } from './art.js';
 import { kitOf, record } from '../engine/survey.js';
 import { recOf } from '../engine/saves.js';
@@ -88,7 +88,7 @@ const actions = {
     if (!pr) return;
     let a;
     try {
-      a = Bot.decide(pr);
+      a = Bot.decide(pr, { peek: true });
     } catch {
       toast('Máy chưa nghĩ ra gợi ý cho quyết định này.');
       return;
@@ -201,6 +201,7 @@ const topbar = h(
   h('button', { type: 'button', class: 'btn small icon', title: 'Luật chơi', onclick: () => openHelp() }, ic('rules')),
   h('button', { type: 'button', class: 'btn small icon', title: 'Về menu', onclick: () => goMenu() }, ic('menu')),
 );
+labelIcons(topbar);
 const tableItems = h('div', { class: 'titems' });
 const lastLine = h('button', { type: 'button', class: 'lastline', title: 'Mở nhật ký', onclick: () => logPanel.toggle(true) });
 const tableInfo = h('div', { class: 'tableinfo' }, tableItems, lastLine);
@@ -528,6 +529,9 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// touch-only devices: a long press shows a title (desktop keeps the native tooltip)
+installTapTitles(document.body);
 
 // a room link (?room=CODE) opens the online screen with the code filled in
 show(new URLSearchParams(location.search).has('room') ? 'online' : 'menu');
