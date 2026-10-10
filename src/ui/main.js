@@ -15,6 +15,7 @@ import { createLog } from './log.js';
 import { createFx } from './fxdir.js';
 import { play, soundOn, setSound, unlockOnGesture } from './sfx.js';
 import { createMenu, speedSelect } from './menu.js';
+import { createOnline } from './online.js';
 import { openGraveyard, openHelp, openResults, closeAllModals, confirmDialog } from './modals.js';
 import { ic, paintIcons, setIconSet, iconSet } from './icons.js';
 
@@ -250,7 +251,7 @@ function renderTopbar() {
   phaseEl.textContent = `${DAYS[S.day - 1] || ''} · ${PHASES[S.ph] || ''}${turn}`;
   const anyBot = S.order.some((c) => S.seats[c] === 'bot');
   speedWrap.style.display = anyBot ? '' : 'none';
-  saveEl.textContent = Game.hasSave() ? '● đã lưu' : '';
+  saveEl.textContent = Game.remote ? online.info() : Game.hasSave() ? '● đã lưu' : '';
   document.title = `Deep Regrets · ${DAYS[S.day - 1] || ''}`;
 }
 
@@ -336,10 +337,11 @@ function renderGame() {
 }
 
 function showResults() {
+  // an online game cannot be replayed here: the next game is started from the room
   openResults((close) => [
     h('button', { type: 'button', class: 'btn', onclick: close }, 'Xem lại bàn'),
     h('button', { type: 'button', class: 'btn', onclick: () => { close(); goMenu(true); } }, 'Về menu'),
-    h('button', { type: 'button', class: 'btn primary', onclick: () => { close(); playAgain(); } }, 'Chơi lại (hạt giống mới)'),
+    Game.remote ? null : h('button', { type: 'button', class: 'btn primary', onclick: () => { close(); playAgain(); } }, 'Chơi lại (hạt giống mới)'),
   ]);
 }
 
@@ -347,7 +349,13 @@ function showResults() {
 const menu = createMenu({
   onStart: () => startGame(),
   onContinue: () => continueGame(),
+  onOnline: () => show('online'),
   onHelp: () => openHelp(),
+});
+
+const online = createOnline({
+  onPlay: (game) => playOnline(game),
+  onMenu: () => show('menu'),
 });
 
 function show(screen) {
@@ -357,6 +365,11 @@ function show(screen) {
     menu.render();
     app.append(menu.el);
     document.title = 'Deep Regrets · Menu';
+    window.scrollTo(0, 0);
+  } else if (screen === 'online') {
+    online.render();
+    app.append(online.el);
+    document.title = 'Deep Regrets · Chơi online';
     window.scrollTo(0, 0);
   } else {
     app.append(gameEl);
@@ -417,13 +430,27 @@ function playAgain() {
   startGame({ colors: s.colors.slice(), opts: { ...s.opts, seed: undefined } });
 }
 
+/** an online room game: the seat's link is set up by online.js, the table is shown here */
+function playOnline({ setup, rec, link }) {
+  closeAllModals();
+  resetViews();
+  Game.speed = UI.prefs.speed;
+  Game.attach(link, setup, rec);
+  show('game');
+  schedule();
+}
+
 async function goMenu(skipConfirm) {
   if (UI.screen === 'menu') return;
   if (!skipConfirm && !Game.over && !Game.error) {
-    const ok = await confirmDialog({ title: 'Về menu?', text: 'Ván đấu được lưu tự động, bạn có thể tiếp tục sau từ menu. Về menu ngay bây giờ?', ok: 'Về menu' });
+    const text = Game.remote
+      ? 'Bạn sẽ rời bàn chơi online. Ghế của bạn vẫn được giữ, và bạn có thể vào lại bằng mã phòng.'
+      : 'Ván đấu được lưu tự động, bạn có thể tiếp tục sau từ menu. Về menu ngay bây giờ?';
+    const ok = await confirmDialog({ title: 'Về menu?', text, ok: 'Về menu' });
     if (!ok) return;
   }
   closeAllModals();
+  online.detach();
   Game.stop();
   show('menu');
 }
@@ -454,7 +481,8 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-show('menu');
+// a room link (?room=CODE) opens the online screen with the code filled in
+show(new URLSearchParams(location.search).has('room') ? 'online' : 'menu');
 
 // handy for debugging in the console
 window.DR = { Game, S, UI, humans };

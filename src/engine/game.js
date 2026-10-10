@@ -1,5 +1,6 @@
 // Game controller: runs the engine, routes prompts to humans or bots, records every answer so that undo,
 // save and resume are done by replaying the recorded answers (the engine is a pure function of setup + answers).
+// Online co-op uses the same replay: the server keeps the answers and every client replays them (see attach).
 
 import { S, RT } from './state.js';
 import { Setup } from './setup.js';
@@ -29,12 +30,18 @@ export const Game = {
   setup: null, // { colors: [...], opts: { tent, big, short, seed, seats: {color: 'human'|'bot'} } }
   rec: [], // [{ a: answer, h: wasHuman, t: promptTag }]
   prompt: null, // prompt waiting for a human
-  thinking: null, // seat of the bot that is about to answer
+  thinking: null, // seat of the bot (or, online, of the other human) that is about to answer
+  waitTitle: null, // online: the question another seat is answering
   over: false,
   error: null,
   speed: 400, // ms a bot "thinks" per decision (0 = instant)
   token: 0,
+  keepLocal: true, // false on the server: games are not written to localStorage there
+  remote: null, // online: { seat, send(n, a) }. The server decides the bots and records every answer.
   _resolve: null,
+  _await: null, // online: { k, resolve } the run waits until answer k is recorded
+  _sent: -1, // online: index of the answer already sent to the server
+  _liveFrom: 0, // online: answers from this index on arrived while playing, so bots are paced as in a local game
   _listeners: new Set(),
   version: 0, // bumped on every change so the UI can cheaply detect updates
 
@@ -73,15 +80,54 @@ export const Game = {
     const token = ++Game.token;
     Game.prompt = null;
     Game.thinking = null;
+    Game.waitTitle = null;
     Game.over = false;
     Game.error = null;
     Game._resolve = null;
+    Game._await = null;
+    Game._sent = -1;
     Bot.reset();
     let i = 0;
     const { colors, opts } = Game.setup;
+
+    /** online: the answer to this prompt comes from the server, in record order */
+    const remoteAsk = async (pr) => {
+      const k = i;
+      const seat = pr.color;
+      const mine = seat === Game.remote.seat;
+      if (Game.rec.length <= k) {
+        // the waiter must exist before the UI is told, so that an answer given at once is not lost
+        const waiting = new Promise((resolve) => {
+          Game._await = { k, resolve };
+        });
+        Game.prompt = mine ? pr : null;
+        Game.thinking = mine ? null : seat;
+        Game.waitTitle = mine ? null : pr.title;
+        Game.emit();
+        await waiting;
+        if (token !== Game.token) return never();
+      }
+      const e = Game.rec[k];
+      i = k + 1;
+      Game.prompt = null;
+      if (!e.h && k >= Game._liveFrom && Game.speed > 0) {
+        // a bot decided this just now: let it "think" as it does in a local game
+        Game.thinking = seat;
+        Game.waitTitle = null;
+        Game.emit();
+        await sleep(Game.speed);
+        if (token !== Game.token) return never();
+      }
+      Game.thinking = null;
+      Game.waitTitle = null;
+      Game.emit();
+      return settle(token, e.a);
+    };
+
     RT.driver = {
       ask: async (pr) => {
         if (token !== Game.token) return never();
+        if (Game.remote) return remoteAsk(pr);
         if (i < Game.rec.length) return settle(token, Game.rec[i++].a);
         const seat = pr.color;
         if (S.seats[seat] === 'bot') {
@@ -140,18 +186,25 @@ export const Game = {
     );
   },
 
-  /** answer the current human prompt. pick: option index; multi: array of item indices or null */
+  /** shape check of an answer for a prompt: pick -> enabled option index, multi -> distinct item indices or null */
+  _valid(pr, v) {
+    if (pr.kind === 'pick') return Number.isInteger(v) && !!pr.opts[v] && !pr.opts[v].dis;
+    if (v === null) return !!pr.cancel;
+    return Array.isArray(v) && v.every((x) => Number.isInteger(x) && x >= 0 && x < pr.items.length) && new Set(v).size === v.length && pr.check(v).ok;
+  },
+
+  /** answer the current prompt. pick: option index; multi: array of item indices or null when cancelled */
   answer(v) {
     const pr = Game.prompt;
-    if (!pr || !Game._resolve) return false;
-    if (pr.kind === 'pick') {
-      if (!Number.isInteger(v) || !pr.opts[v] || pr.opts[v].dis) return false;
-    } else if (v === null) {
-      if (!pr.cancel) return false;
-    } else {
-      if (!Array.isArray(v) || v.some((x) => !Number.isInteger(x) || x < 0 || x >= pr.items.length) || new Set(v).size !== v.length) return false;
-      if (!pr.check(v).ok) return false;
+    if (!pr || !Game._valid(pr, v)) return false;
+    if (Game.remote) {
+      // only the answer the run is waiting for, and only once: the server records it and sends it to every seat
+      if (!Game._await || Game._await.k !== Game.rec.length || Game._sent === Game.rec.length) return false;
+      if (!Game.remote.send(Game.rec.length, v)) return false;
+      Game._sent = Game.rec.length;
+      return true;
     }
+    if (!Game._resolve) return false;
     Game._resolve(v);
     return true;
   },
@@ -161,7 +214,7 @@ export const Game = {
     return -1;
   },
   canUndo() {
-    return Game.setup !== null && Game.lastHuman() >= 0;
+    return Game.setup !== null && !Game.remote && Game.lastHuman() >= 0;
   },
   /** take back the previous human decision (the same question is asked again) */
   undo() {
@@ -173,10 +226,39 @@ export const Game = {
     return true;
   },
 
+  // ONLINE --------------------------------------------------------------------------------------------------
+  /** play a game that the server holds. link = { seat, send(n, a) }; rec = the answers recorded so far */
+  attach(link, setup, rec) {
+    Game.remote = link;
+    Game.setup = { colors: setup.colors.slice(), opts: setup.opts };
+    Game.rec = rec.map((r) => ({ a: r.a, h: !!r.h, t: r.t || '' }));
+    Game._liveFrom = Game.rec.length;
+    Game.launch();
+  },
+  /** answers the server recorded from index `from` on. Returns false when some earlier answer is missing (ask for the record). */
+  feed(from, list) {
+    if (!Game.remote || from > Game.rec.length) return false;
+    list.forEach((r, j) => {
+      if (from + j >= Game.rec.length) Game.rec.push({ a: r.a, h: !!r.h, t: r.t || '' });
+    });
+    if (Game._sent >= 0 && Game.rec.length > Game._sent) Game._sent = -1;
+    const w = Game._await;
+    if (w && Game.rec.length > w.k) {
+      Game._await = null;
+      w.resolve();
+    }
+    return true;
+  },
+  /** the server refused the last answer, or the connection dropped with it in flight: it can be sent again */
+  reject() {
+    Game._sent = -1;
+    Game.emit();
+  },
+
   // SAVE / LOAD -------------------------------------------------------------------------------------
   save() {
     const st = storage();
-    if (!st || !Game.setup) return;
+    if (!Game.keepLocal || Game.remote || !st || !Game.setup) return;
     try {
       st.setItem(SAVE_KEY, JSON.stringify({ v: 1, setup: Game.setup, rec: Game.rec.map((r) => [r.a, r.h ? 1 : 0, r.t || '']) }));
     } catch {
@@ -218,6 +300,7 @@ export const Game = {
   },
   clearSave() {
     const st = storage();
+    if (!Game.keepLocal || Game.remote) return;
     try {
       st && st.removeItem(SAVE_KEY);
     } catch {
@@ -229,7 +312,11 @@ export const Game = {
     Game.token++;
     Game.prompt = null;
     Game.thinking = null;
+    Game.waitTitle = null;
     Game._resolve = null;
+    Game._await = null;
+    Game._sent = -1;
+    Game.remote = null;
     Game.setup = null;
     Game.rec = [];
     Game.over = false;

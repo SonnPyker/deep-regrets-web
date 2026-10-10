@@ -259,7 +259,7 @@ export function createDecision(act) {
           { class: 'btnrow' },
           Game.canUndo() ? h('button', { type: 'button', class: 'btn', onclick: act.undo }, 'Hoàn tác') : null,
           h('button', { type: 'button', class: 'btn', onclick: act.report }, 'Sao chép báo cáo lỗi'),
-          h('button', { type: 'button', class: 'btn primary', onclick: act.newGame }, 'Ván mới'),
+          h('button', { type: 'button', class: 'btn primary', onclick: act.newGame }, Game.remote ? 'Về menu' : 'Ván mới'),
         ),
       );
       return;
@@ -274,7 +274,7 @@ export function createDecision(act) {
           'div',
           { class: 'btnrow' },
           h('button', { type: 'button', class: 'btn primary', onclick: act.openEnd }, 'Xem kết quả'),
-          h('button', { type: 'button', class: 'btn', onclick: act.newGame }, 'Ván mới'),
+          h('button', { type: 'button', class: 'btn', onclick: act.newGame }, Game.remote ? 'Về menu' : 'Ván mới'),
         ),
       );
       return;
@@ -285,7 +285,13 @@ export function createDecision(act) {
         const c = Game.thinking;
         el.classList.add('thinking');
         el.style.setProperty('--c', seatColor(c));
-        el.append(head(`${SEAT[c].name} (máy) đang suy nghĩ`, c, h('span', { class: 'dots' }, h('i'), h('i'), h('i'))));
+        const dots = h('span', { class: 'dots' }, h('i'), h('i'), h('i'));
+        if (S.seats[c] === 'human') {
+          // online: another player is answering; the question is shown so that the wait makes sense
+          el.append(head(`Đang chờ ${SEAT[c].name} quyết định`, c, dots), Game.waitTitle ? h('p', { class: 'waitq' }, `Câu hỏi: ${Game.waitTitle}`) : null);
+        } else {
+          el.append(head(`${SEAT[c].name} (máy) đang suy nghĩ`, c, dots));
+        }
       } else {
         el.classList.add('thinking');
         el.append(head('Đang xử lý…', null, h('span', { class: 'dots' }, h('i'), h('i'), h('i'))));
@@ -356,6 +362,7 @@ export function createDecision(act) {
       Game.error ? 'E' : '',
       Game.over ? 'O' : '',
       Game.thinking || '',
+      Game.waitTitle || '',
       pr ? Game.token + ':' + pr.seq + ':' + pr.title : '-',
       pr ? needsCurtain() : '',
       UI.hint ? UI.hint.ans + '|' + (UI.hint.multi || '') : '',

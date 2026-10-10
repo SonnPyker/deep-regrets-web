@@ -26,7 +26,7 @@ export function speedSelect(onChange) {
   return sel;
 }
 
-export function createMenu({ onStart, onContinue, onHelp }) {
+export function createMenu({ onStart, onContinue, onOnline, onHelp }) {
   const el = h('main', { class: 'menu' });
 
   function seatCard(c) {
@@ -158,6 +158,7 @@ export function createMenu({ onStart, onContinue, onHelp }) {
     const info = Game.hasSave() ? Game.saveInfo() : null;
     const actions = h('div', { class: 'menu-actions' });
     actions.append(h('button', { type: 'button', class: 'btn primary xl', disabled: active.length === 0, onclick: () => onStart() }, 'Bắt đầu ván mới'));
+    actions.append(h('button', { type: 'button', class: 'btn xl', onclick: () => onOnline() }, 'Chơi chung online', h('small', null, 'Mỗi người một máy, cùng một ván đấu')));
     if (info) {
       actions.append(
         h(
