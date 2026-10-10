@@ -349,3 +349,36 @@
 .floaty.mad {
   margin-top: 34px;
 }
+
+/* tap titles and focus ---------------------------------------------------------------------------------------- */
+.taptip {
+  position: fixed;
+  z-index: 150;
+  max-width: min(78vw, 280px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel2);
+  color: var(--fg);
+  font-size: 13px;
+  line-height: 1.35;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  animation: taptip-in 0.12s ease-out;
+}
+@keyframes taptip-in {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .taptip {
+    animation: none;
+  }
+}
+/* a board node that a prompt makes clickable is a keyboard stop: its ring must show over the pick glow */
+.shoal[tabindex]:focus-visible,
+.pzone[tabindex]:focus-visible {
+  outline: 3px solid var(--accent2);
+  outline-offset: 3px;
+}

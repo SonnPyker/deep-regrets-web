@@ -3,7 +3,7 @@
 import { S } from '../engine/state.js';
 import { SEAT, ROMAN } from '../engine/core.js';
 import { D } from '../engine/data.js';
-import { h, clear } from './dom.js';
+import { h, clear, setPickable, keyActivate } from './dom.js';
 import { card, seatColor, Zoom } from './art.js';
 import { ic } from './icons.js';
 
@@ -76,9 +76,9 @@ export function createBoard(onGraveyard) {
     clear(node);
     node.className = 'shoal' + (n === 0 ? ' empty' : '') + (pickIdx !== undefined ? ' pick' : '') + (hinted ? ' hint' : '');
     node.onclick = pickIdx !== undefined ? () => ctx.answer(node._pickIdx) : null;
-    if (pickIdx !== undefined) node.setAttribute('role', 'button');
-    else node.removeAttribute('role');
+    node.onkeydown = pickIdx !== undefined ? keyActivate(() => ctx.answer(node._pickIdx)) : null;
     node.title = pickIdx !== undefined ? `Quăng câu vào Shoal ${ROMAN[d - 1]}-${c}` : '';
+    setPickable(node, pickIdx !== undefined ? node.title : null);
     if (n === 0) {
       node.append(h('span', { class: 'lbl' }, `${ROMAN[d - 1]}-${c}`), h('span', { class: 'empty-note' }, 'trống'));
       return;

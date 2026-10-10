@@ -4,7 +4,7 @@
 import { S } from '../engine/state.js';
 import { SEAT, Dc } from '../engine/core.js';
 import { SHOPNAME } from '../engine/port.js';
-import { h, clear } from './dom.js';
+import { h, clear, setPickable, keyActivate } from './dom.js';
 import { seatColor } from './art.js';
 
 // zones measured on assets/board/port.webp (1500 x 1011), in percent: left, top, width, height
@@ -65,13 +65,10 @@ export function createPortBoard() {
     const can = pickIdx !== undefined;
     node.className = `pzone ${key}${can ? ' pick' : ''}${off !== undefined ? ' off' : ''}${hinted ? ' hint' : ''}`;
     node.onclick = can ? () => ctx.answer(pickIdx) : null;
-    if (can) {
-      node.setAttribute('role', 'button');
-      node.title = `${zoneName(key)}: bấm để chọn`;
-    } else {
-      node.removeAttribute('role');
-      node.title = off ? `${zoneName(key)}: ${off}` : zoneName(key);
-    }
+    node.onkeydown = can ? keyActivate(() => ctx.answer(pickIdx)) : null;
+    if (can) node.title = `${zoneName(key)}: bấm để chọn`;
+    else node.title = off ? `${zoneName(key)}: ${off}` : zoneName(key);
+    setPickable(node, can ? node.title : null);
     node.append(h('span', { class: 'pname' }, zoneName(key)));
     if (stock) node.append(h('span', { class: 'pstock' }, stock));
     if (key === 'sell') node.append(h('span', { class: 'pstock' }, 'đổi Fish lấy $'));
