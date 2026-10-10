@@ -1684,11 +1684,14 @@ input[type='text'] {
   background: rgba(2, 8, 12, 0.72);
   backdrop-filter: blur(3px);
   display: grid;
+  /* the column is the screen's width: a wide table (the results) scrolls inside the modal, it never widens the modal */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 12px;
 }
 .modal {
   width: 100%;
+  min-width: 0;
   max-width: 600px;
   max-height: calc(100vh - 24px);
   display: flex;
@@ -2296,38 +2299,4 @@ input[type='text'] {
     animation: none !important;
     transition: none !important;
   }
-}
-
-/* first-run guide */
-.guide {
-  font-size: 14px;
-  overflow-wrap: anywhere;
-}
-.guide-sec + .guide-sec {
-  margin-top: 14px;
-}
-.guide-sec h3 {
-  font-size: 15px;
-  color: var(--accent);
-  margin-bottom: 6px;
-}
-.guide-sec ul {
-  margin: 0;
-  padding-left: 20px;
-}
-.guide-sec li + li {
-  margin-top: 6px;
-}
-.guide-sec b {
-  color: var(--accent2);
-}
-.guide-gloss {
-  border-top: 1px solid var(--line);
-  padding-top: 14px;
-}
-.guide-gloss ul {
-  font-size: 13.5px;
-}
-.guide-gloss li + li {
-  margin-top: 4px;
 }

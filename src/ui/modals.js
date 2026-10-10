@@ -127,7 +127,7 @@ export function openHelp() {
         h('li', null, h('b', null, 'Bắt đầu: '), 'chuyển First Player; Fish đã lật bị bỏ; sự kiện ngày (Thứ Tư và Thứ Sáu: Can of Worms được lật ngửa lại; Thứ Năm: mọi người nhận 3$; Thứ Bảy: mỗi người lấy một xúc xắc Tackle nếu túi còn đủ); mọi thuyền ở Biển được kéo lên 1 Depth (Reel in).'),
         h('li', null, h('b', null, 'Refresh (Muster Courage): '), 'có thể tung lại một số xúc xắc Fresh yếu; xúc xắc mới tung vào Fresh tới giới hạn theo Madness, phần dư vào Spent. Người có tổng Fresh cao nhất đưa Life Preserver.'),
         h('li', null, h('b', null, 'Khai báo: '), 'ở lại Biển hay Make Port (vào Cảng); chọn Rod và Reel dùng trong ngày.'),
-        h('li', null, h('b', null, 'Hành động: '), 'lần lượt từng người làm đúng 1 hành động chính (hoặc Pass) kèm các hành động tự do tùy ý, cho đến khi mọi người Pass.'),
+        h('li', null, h('b', null, 'Hành động: '), 'lần lượt từng người làm đúng 1 hành động chính (hoặc Pass) kèm các hành động tự do tùy ý, cho đến khi mọi người Pass. Khi chỉ còn một người chưa Pass, người đó được thêm hai lượt rồi ngày kết thúc.'),
       ),
     ),
     sec(
@@ -175,11 +175,21 @@ export function openHelp() {
         ' trên thanh trên cùng để ghi ván đang chơi vào một trong ba ô của chế độ đó (Solo và Nhiều người chơi có ô riêng). Ở menu, mục "Ván đã lưu" để tải, xuất ra tệp .json hoặc nhập lại tệp.',
       ),
     ),
+    h(
+      'details',
+      { open: true },
+      h('summary', null, 'Thuật ngữ tiếng Anh'),
+      h(
+        'ul',
+        null,
+        GLOSSARY.map(([term, def]) => h('li', null, h('b', null, term), def ? `: ${def}` : null)),
+      ),
+    ),
   );
   openModal({ title: 'Luật chơi Deep Regrets', body, wide: true });
 }
 
-// FIRST-RUN GUIDE ----------------------------------------------------------------------------------------
+// GLOSSARY----------------------------------------------------------------------------------------
 // English words the Vietnamese UI shows. A definition is given only where the rule text in the engine says what the term does;
 // a null definition lists the term alone.
 const GLOSSARY = [
@@ -221,54 +231,6 @@ const GLOSSARY = [
   ['Lamentable Tentacles / Biggest Regrets', 'hai bản mở rộng, bật trong mục Tùy chọn ở menu. Biggest Regrets: mỗi người một lá, khả năng đổi theo số Regret.'],
   ['Tên lá bài: Whispering Skull, Iron Coffin, Bone Wheel, Rod of the Infinite, Reel of Fortune', null],
 ];
-
-/** first visit: the rules in a few steps, then the glossary. Opened from the menu (menu.js). */
-export function openGuide() {
-  const sec = (title, ...kids) => h('section', { class: 'guide-sec' }, h('h3', null, title), ...kids);
-  const body = h(
-    'div',
-    { class: 'guide' },
-    sec(
-      '1. Mỗi ngày',
-      h(
-        'ul',
-        null,
-        h('li', null, 'Trong phần hành động, đến lượt bạn thì chọn một hành động chính hoặc Pass trong hộp quyết định. Hành động tự do (ăn Fish, Dink, Supply...) làm thêm được trong lượt.'),
-        h('li', null, 'Các lượt tiếp tục cho đến khi mọi người Pass. Khi chỉ còn một người chưa Pass, người đó được thêm hai lượt rồi ngày kết thúc.'),
-      ),
-    ),
-    sec(
-      '2. Biển và Cảng',
-      h(
-        'ul',
-        null,
-        h('li', null, h('b', null, 'Biển: '), 'bấm một Shoal sáng trên bàn để quăng câu. Fish trên cùng được lật; trả Difficulty bằng xúc xắc Fresh để bắt. Không trả được thì dùng một xúc xắc và rút một Dink, Fish ở lại Shoal.'),
-        h('li', null, h('b', null, 'Cảng: '), 'bấm Bán Fish để đổi Fish lấy Fishbucks ($); bấm một tiệm để mua Rod, Reel, Supply hoặc xúc xắc Tackle; chọn Mount trong hộp quyết định để gắn Fish lên tường.'),
-      ),
-    ),
-    sec(
-      '3. Kết thúc ván',
-      h(
-        'ul',
-        null,
-        h('li', null, 'Ván kết thúc sau ngày cuối (Thứ Bảy; chơi một mình là Thứ Sáu) hoặc khi Biển hết Fish.'),
-        h('li', null, 'Nhiều người chơi: điểm = Fish trên tay + Fish đã Mount (nhân theo ô ×2, ×3, ×2) + Fishbucks (mỗi 2$ = 1 điểm).'),
-        h('li', null, 'Regret không trừ điểm trực tiếp, nhưng nhiều Regret làm Fair Fish đáng ít đi và Foul Fish đáng nhiều hơn. Người có Regret Value cao nhất phải bỏ một Fish đã Mount.'),
-      ),
-    ),
-    h(
-      'section',
-      { class: 'guide-sec guide-gloss' },
-      h('h3', null, 'Thuật ngữ tiếng Anh'),
-      h(
-        'ul',
-        null,
-        GLOSSARY.map(([term, def]) => h('li', null, h('b', null, term), def ? `: ${def}` : null)),
-      ),
-    ),
-  );
-  openModal({ title: 'Hướng dẫn nhanh', body });
-}
 
 // RESULTS ------------------------------------------------------------------------------------------------
 /** extra.panel: the Ocean Survey purchase of a solo week (survey.js), shown under the Fish brought back */
