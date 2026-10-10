@@ -3,9 +3,11 @@
 import { S } from '../engine/state.js';
 import { Game } from '../engine/game.js';
 import { readSurvey } from '../engine/survey.js';
+import { readSlots } from '../engine/saves.js';
 
 const PREFS_KEY = 'deepregrets.prefs.v1';
 const SURVEY_KEY = 'deepregrets.survey.v1';
+const SAVES_KEY = 'deepregrets.saves.v1';
 
 export const UI = {
   screen: 'menu', // menu | game
@@ -65,6 +67,29 @@ export function saveSurvey(sv) {
     localStorage.setItem(SURVEY_KEY, JSON.stringify(sv));
   } catch {
     /* ignore: the sheet is kept for this session only */
+  }
+}
+
+/** the save slots of both modes (engine/saves.js): { solo: [save|null x3], coop: [...] }. Unreadable slots count as empty. */
+export function loadSlots() {
+  let raw = null;
+  try {
+    raw = JSON.parse(localStorage.getItem(SAVES_KEY));
+  } catch {
+    /* blocked or corrupt: every slot is empty */
+  }
+  return readSlots(raw);
+}
+
+/** put a save into slot i of its mode (null empties it). Returns false when the browser refuses to store it. */
+export function writeSlot(mode, i, save) {
+  const slots = loadSlots();
+  slots[mode][i] = save;
+  try {
+    localStorage.setItem(SAVES_KEY, JSON.stringify({ slots }));
+    return true;
+  } catch {
+    return false;
   }
 }
 

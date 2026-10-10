@@ -5,7 +5,8 @@ import { Game } from '../engine/game.js';
 import { progress } from '../engine/survey.js';
 import { h, clear } from './dom.js';
 import { seatColor } from './art.js';
-import { UI, savePrefs, loadSurvey } from './store.js';
+import { UI, savePrefs, loadSurvey, loadSlots } from './store.js';
+import { SAVE_MODES, SAVE_SLOTS } from '../engine/saves.js';
 import { ICON_SETS, iconSet, setIconSet } from './icons.js';
 
 export const SPEEDS = [
@@ -27,7 +28,7 @@ export function speedSelect(onChange) {
   return sel;
 }
 
-export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey }) {
+export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey, onSaves }) {
   const el = h('main', { class: 'menu' });
 
   function seatCard(c) {
@@ -180,6 +181,8 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey }) 
         h('small', null, `Tuần ${sv.weeks} · ${pr.done}/${pr.total} Fish${sv.pending ? ' · có kết quả chờ ghi' : ''}`),
       ),
     );
+    const used = Object.values(loadSlots()).flat().filter(Boolean).length;
+    actions.append(h('button', { type: 'button', class: 'btn xl', onclick: () => onSaves() }, 'Ván đã lưu', h('small', null, `${used}/${SAVE_MODES.length * SAVE_SLOTS} ô đã dùng`)));
     actions.append(h('button', { type: 'button', class: 'btn ghost xl', onclick: () => onHelp() }, 'Luật chơi'));
     el.append(actions);
     el.append(h('footer', { class: 'credit' }, 'Bản làm lại không chính thức của boardgame Deep Regrets, dùng hình ảnh từ bản Tabletop Simulator có sẵn trên máy bạn.'));

@@ -23,6 +23,7 @@ const BRINY = {
   sound_on: fillP('M3 9h4l5-4v14l-5-4H3z', CREAM) + lineP('M16 9q2 3 0 6', TEAL, 2) + lineP('M18.5 6.5q3.5 5.5 0 11', TEAL, 2),
   sound_off: fillP('M3 9h4l5-4v14l-5-4H3z', CREAM) + lineP('M16 9l5 6M21 9l-5 6', CORAL, 2.2),
   log: rect(5, 3, 14, 18, 2, CREAM) + lineP('M8 8h8M8 12h8M8 16h5', SEA, 1.8),
+  save: rect(4, 3.5, 16, 17, 2.5, CREAM) + rect(7.5, 3.5, 9, 6, 1, SEA) + rect(7, 13.5, 10, 7, 1.2, TEAL),
   rules: fillP('M3 5q5-2 9 1v14q-4-2-9-1z', TEAL) + fillP('M21 5q-5-2-9 1v14q4-2 9-1z', GOLD),
   menu: lineP('M4 7h16M4 12h16M4 17h16', CREAM, 2.4),
   close: lineP('M6 6l12 12M18 6L6 18', CREAM, 2.6),
@@ -72,7 +73,7 @@ const BRINY = {
 BRINY.trophy = BRINY.mount;
 
 const EMOJI = {
-  sound_on: '🔊', sound_off: '🔇', log: '📜', rules: '📖', menu: '☰', close: '✕', zoom: '🔍', hint: '💡', undo: '↶', check: '✓', sparkle: '✨', iconset: '🎨',
+  sound_on: '🔊', sound_off: '🔇', log: '📜', save: '💾', rules: '📖', menu: '☰', close: '✕', zoom: '🔍', hint: '💡', undo: '↶', check: '✓', sparkle: '✨', iconset: '🎨',
   sea: '🌊', port: '⚓', dice: '🎲', spent: '💤', bag: '🎒', regret: '🃏', cards: '🃏', supply: '🧰', rod: '🎣', reel: '🌀', madness: '🌀', dink: '🎴', big: '👑',
   lp: '🛟', plug: '🔌', lifeboat: '🚣', sell: '💰', shop: '🛒', mount: '🏆', trophy: '🏆', give: '🎁', pass: '⏭️', eat: '🍴', cloche: '🍽️', skull: '💀',
   coffin: '⚰️', sinkers: '⚓', fish: '🐟', worm: '🪱', bucks: '🪙', human: '🧑', bot: '🤖', first: '🥇', flag: '🏳️', eye: '👁', tag: '🏷️', grave: '🪦',

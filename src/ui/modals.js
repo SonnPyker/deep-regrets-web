@@ -167,6 +167,13 @@ export function openHelp() {
         ic('undo'),
         ' để hoàn tác quyết định của mình. Hành động trong lượt chờ bạn bấm Chọn để xác nhận (có thể tắt trong menu). Ván chơi được lưu tự động.',
       ),
+      h(
+        'p',
+        null,
+        'Lưu ván: bấm ',
+        ic('save'),
+        ' trên thanh trên cùng để ghi ván đang chơi vào một trong ba ô của chế độ đó (Solo và Nhiều người chơi có ô riêng). Ở menu, mục "Ván đã lưu" để tải, xuất ra tệp .json hoặc nhập lại tệp.',
+      ),
     ),
   );
   openModal({ title: 'Luật chơi Deep Regrets', body, wide: true });

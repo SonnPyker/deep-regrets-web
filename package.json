@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node build.mjs",
     "watch": "node build.mjs --watch",
-    "test": "node tests/run.mjs 30 && node tests/cards.mjs all 2 && node tests/game.mjs && node tests/survey.mjs && node tests/coop.mjs",
+    "test": "node tests/run.mjs 30 && node tests/cards.mjs all 2 && node tests/game.mjs && node tests/survey.mjs && node tests/coop.mjs && node tests/saves.mjs",
     "serve": "node serve.mjs",
     "server": "node server/index.mjs",
     "site": "node scripts/publish-site.mjs"

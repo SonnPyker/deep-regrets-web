@@ -11,7 +11,7 @@ npm run watch          # same bundle, unminified, rebuilds on change
 npm run serve          # static server on http://localhost:5173 (node serve.mjs <port> to change port)
 npm run server         # co-op server on http://localhost:8787 (env: PORT, ALLOWED_ORIGINS, SUPABASE_*; see README)
 npm run site           # static site into public/ for Vercel (needs DR_API_URL; the build bakes it in)
-npm test               # run.mjs 30 && cards.mjs all 2 && game.mjs && survey.mjs && coop.mjs
+npm test               # run.mjs 30 && cards.mjs all 2 && game.mjs && survey.mjs && coop.mjs && saves.mjs
 ```
 
 No linter or typechecker is configured.
@@ -24,6 +24,7 @@ There is no per-test filter. Narrow the run through script arguments:
 - `node tests/smoke.mjs <seed> <players>` - one random game, prints the result.
 - `node tests/game.mjs` - controller level: bot-only games, resume, mixed human/bot with undo, replay equality.
 - `node tests/survey.mjs` - Ocean Survey (solo campaign): sheet rules, the kit a game starts with, three weeks in a row.
+- `node tests/saves.mjs` - save slots: a resumed save ends like the live game, `Game.verify` keeps an in-progress game, `readSave` rejects bad files.
 
 To debug one card, edit the targeted tests in `tests/cards.mjs` rather than the random runner.
 
@@ -35,6 +36,8 @@ Two layers with a one-way dependency: `src/engine` (rules, no DOM) is used by `s
 
 - `S` (engine/state.js) is plain JSON-serialisable game state. It is replaced in place by `setState`, so modules keep a stable binding. `RT` holds runtime-only data (current prompt, driver, log) and is never serialised.
 - A game is a pure function of (setup options including seed, list of answers). `Game` (engine/game.js) records every answer in `Game.rec`. Undo, save and resume all work by re-running `Game.launch()` from scratch and fast-forwarding through the recorded answers. Save data in localStorage (`deepregrets.save.v1`) stores only the setup and the answers, never the state.
+
+Save slots (`src/engine/saves.js` for the format and checks, `src/ui/saves.js` for the dialog) hold up to three games per mode in `deepregrets.saves.v1` (`solo` = the Ocean Survey campaign, `coop` = several seats on one device). A solo save also stores the Ocean Survey sheet, because the sheet changes between weeks. `Game.resume` continues a save. `Game.verify` replays an imported record in the background, with `_quiet` silencing the run, before anything is written, then restores the game in progress. `settled()` waits for that restored run to pause. Online co-op rooms do not use slots: the server owns them.
 
 Rules this imposes on engine code:
 

@@ -7,6 +7,7 @@ import { Bot } from '../engine/bot.js';
 import { h, clear, frameThrottle, toast } from './dom.js';
 import { seatColor, refOf } from './art.js';
 import { kitOf, record } from '../engine/survey.js';
+import { recOf } from '../engine/saves.js';
 import { UI, loadPrefs, viewerSeat, seeAll, needsCurtain, humans, parseSeed, loadSurvey, saveSurvey } from './store.js';
 import { createBoard } from './board.js';
 import { createPortBoard, zoneOf } from './portboard.js';
@@ -19,6 +20,7 @@ import { createMenu, speedSelect } from './menu.js';
 import { createOnline } from './online.js';
 import { openGraveyard, openHelp, openResults, closeAllModals, confirmDialog } from './modals.js';
 import { openSurveyBoard, settlePanel } from './survey.js';
+import { openSaves } from './saves.js';
 import { ic, paintIcons, setIconSet, iconSet } from './icons.js';
 
 const app = document.getElementById('app');
@@ -181,6 +183,7 @@ logPanel.onChange(({ open, unseen }) => {
   logBtn.dataset.n = unseen > 9 ? '9+' : String(unseen || '');
 });
 const surveyBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Bảng Ocean Survey', onclick: () => openSurveyBoard() }, ic('fish'));
+const saveBtn = h('button', { type: 'button', class: 'btn small icon', title: 'Lưu ván đang chơi vào một ô', onclick: () => openSaves({ game: true, onLoad: loadSave }) }, ic('save'));
 const topbar = h(
   'header',
   { class: 'topbar' },
@@ -190,6 +193,7 @@ const topbar = h(
   h('span', { class: 'spacer' }),
   saveEl,
   speedWrap,
+  saveBtn,
   logBtn,
   soundBtn,
   iconBtn,
@@ -256,6 +260,7 @@ function renderTopbar() {
   const anyBot = S.order.some((c) => S.seats[c] === 'bot');
   speedWrap.style.display = anyBot ? '' : 'none';
   surveyBtn.style.display = S.mode === 'solo' ? '' : 'none';
+  saveBtn.style.display = Game.canSave() ? '' : 'none';
   saveEl.textContent = Game.remote ? online.info() : Game.hasSave() ? '● đã lưu' : '';
   document.title = `Deep Regrets · ${DAYS[S.day - 1] || ''}`;
 }
@@ -372,6 +377,7 @@ const menu = createMenu({
   onOnline: () => show('online'),
   onHelp: () => openHelp(),
   onSurvey: () => openSurveyBoard({ onDone: () => menu.render() }),
+  onSaves: () => openSaves({ game: false, onLoad: loadSave, onClose: () => menu.render() }),
 });
 
 const online = createOnline({
@@ -451,6 +457,17 @@ function continueGame() {
     menu.render();
     return;
   }
+  show('game');
+  schedule();
+}
+
+/** continue a save (from a slot or a file): a solo save brings its Ocean Survey sheet back with it */
+function loadSave(save) {
+  closeAllModals();
+  resetViews();
+  if (save.mode === 'solo') saveSurvey(save.sheet);
+  Game.speed = UI.prefs.speed;
+  Game.resume(save.setup, recOf(save));
   show('game');
   schedule();
 }

@@ -34,6 +34,7 @@ Khi sửa code trong `src/`, chạy `npm run watch` để tự build lại, ho�
   phạt người có nhiều Regret nhất, tính điểm và phá hòa.
 - Bản mở rộng: Lamentable Tentacles, Biggest Regrets; tùy chọn ván ngắn (5 ngày).
 - Gợi ý (💡), Hoàn tác (↶), tự lưu và tiếp tục ván, hạt giống ngẫu nhiên có thể lặp lại, tốc độ máy chỉnh được.
+- Ba ô lưu cho mỗi chế độ (Solo và Nhiều người chơi): bấm 💾 trên thanh trên cùng để lưu ván đang chơi, tải lại, xuất ra tệp `.json` và nhập lại. Tệp nhập vào được chạy thử trước khi ghi, tệp hỏng hoặc không khớp luật hiện tại bị từ chối.
 - Bấm thẳng lên bàn: quăng câu bằng cách bấm Shoal trên bàn, chọn Slot Mount ngay trên tường của bạn, chọn người chơi hoặc lá bài đang nằm trước mặt.
 - Hiệu ứng và âm thanh tổng hợp (có nút tắt 🔊): xúc xắc lăn, lật Fish, Fish bay về người bắt được, +Regret / +$ nổi lên, banner từng ngày, thanh đo Difficulty khi chọn xúc xắc trả.
 - Bố cục gọn, ít phải cuộn: trên desktop cả bàn chơi, hộp quyết định, thông tin bàn và người chơi nằm vừa một màn hình; chỉ số hiển thị bằng icon + số (rê chuột để xem giải thích), nhật ký nằm trong ngăn kéo 📜 (dòng mới nhất luôn hiện ở thanh thông tin), trên điện thoại người chơi là dải vuốt ngang.
@@ -88,11 +89,12 @@ Mọi địa chỉ Vercel (kể cả preview) phải nằm trong `ALLOWED_ORIGIN
 
 ```
 src/engine/   logic luật chơi (hàm thuần theo cấu hình + hạt giống + lựa chọn):
-              game.js (điều khiển ván, lưu/hoàn tác/tiếp tục bằng phát lại), flow.js (ngày, lượt, kết thúc),
+              game.js (điều khiển ván, lưu/hoàn tác/tiếp tục bằng phát lại), saves.js (định dạng và kiểm tra bản lưu),
+              flow.js (ngày, lượt, kết thúc),
               fish.js (câu cá), port.js (bán/mua/mount), free.js (hành động miễn phí), data.js (cơ sở dữ liệu lá bài),
               bot.js (người chơi máy), setup.js (thiết lập ván mới)
 src/ui/       giao diện: main.js (điểm vào), board.js (bàn chơi), decision.js (hộp quyết định), players.js,
-              modals.js, log.js, store.js, fxdir.js + sfx.js (hiệu ứng và âm thanh)
+              modals.js, saves.js (ô lưu, nhập/xuất tệp), log.js, store.js, fxdir.js + sfx.js (hiệu ứng và âm thanh)
 css/          style.css, fx.css
 assets/       hình ảnh: bàn chơi, thẻ bài, Fish, xúc xắc... (không kèm repo, xem bước 1)
 dist/         bundle đã build (app.js), được commit để index.html chạy trực tiếp
@@ -114,7 +116,7 @@ npm test
 ```
 
 Chạy hàng trăm ván ngẫu nhiên đủ 1-5 người (kèm kiểm tra phát lại cho cùng kết quả), thử từng lá Fish/Dink/Supply/Rod/Reel/Biggest Regret,
-và kiểm thử controller (hoàn tác, lưu/tải, ghế người xen kẽ máy).
+và kiểm thử controller (hoàn tác, lưu/tải, ghế người xen kẽ máy). `tests/saves.mjs` kiểm tra ô lưu: tải xong đi tiếp đúng như ván chơi liền, tệp hỏng bị từ chối.
 `tests/coop.mjs` khởi động máy chủ thật với hai tiến trình người chơi, kiểm tra kết nối lại, và xác nhận máy chủ
 từ chối câu trả lời không hợp lệ hoặc token sai.
 
