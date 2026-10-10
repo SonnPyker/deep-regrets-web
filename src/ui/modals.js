@@ -152,7 +152,7 @@ export function openHelp() {
     ),
     sec(
       'Chơi một mình (Ocean Survey)',
-      h('p', null, 'Chơi 5 ngày với toàn bộ 60 lá Regret. Cuối ván, bạn phải ném bỏ Fish có tổng giá trị ít nhất bằng Regret Value của bạn; phần Fish còn lại là điểm dùng để mở khóa trang bị trên tờ Survey.'),
+      h('p', null, 'Mỗi ván là một tuần trong chiến dịch Ocean Survey: chơi 5 ngày với toàn bộ 60 lá Regret. Cuối tuần, bạn phải ném bỏ Fish có tổng giá trị ít nhất bằng Regret Value của bạn; phần Fish còn lại đưa về Cảng, được ghi vào Survey (đánh dấu) và tổng giá trị đó dùng để mở khóa trang bị. Dink có giá trị giảm giá cũng giảm chi phí mua. Điểm không dùng hết sẽ mất. Trang bị mở khóa được dùng cho các ván sau. Chơi một mình không dùng Fish của Lamentable Tentacles, vì tờ Survey không có ô cho chúng.'),
     ),
     sec(
       'Cách chơi trên máy',
@@ -173,7 +173,8 @@ export function openHelp() {
 }
 
 // RESULTS ------------------------------------------------------------------------------------------------
-export function openResults(actions) {
+/** extra.panel: the Ocean Survey purchase of a solo week (survey.js), shown under the Fish brought back */
+export function openResults(actions, extra = {}) {
   const r = S.res;
   if (!r) return null;
   let body;
@@ -226,8 +227,8 @@ export function openResults(actions) {
       h('div', { class: 'winner' }, h('span', { class: 'trophy' }, ic('rod')), h('div', null, h('b', null, `Bạn mang về ${r.kept.length} Fish trị giá ${r.total}`), h('small', null, `Regret Value của bạn: ${r.regV}${r.plug ? ' · The Plug đã bị cắm' : ''}`))),
       r.jet.length ? h('p', null, h('b', null, 'Đã ném bỏ: '), r.jet.join(', ')) : h('p', { class: 'dim' }, 'Không phải ném bỏ Fish nào.'),
       r.kept.length ? kept : null,
-      h('p', null, 'Hãy dùng số điểm này để mở khóa trang bị trên tờ Survey của bạn:'),
-      h('img', { class: 'survey', src: 'assets/board/surveysolocoop.webp', alt: 'Tờ Survey (chơi một mình)' }),
+      r.dinks && r.dinks.length ? h('p', { class: 'dim' }, h('b', null, 'Dink giảm giá khi mua trang bị: '), r.dinks.join(', ')) : null,
+      extra.panel || null,
     );
   }
   return openModal({ title: r.mode === 'multi' ? 'Kết quả ván đấu' : 'Kết quả tuần lễ', body, wide: true, actions });

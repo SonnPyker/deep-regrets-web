@@ -1776,6 +1776,134 @@ input[type='text'] {
 .gygrid .card {
   width: 100%;
 }
+/* Ocean Survey: the sheet, and the purchase of a finished solo week */
+.survey-board,
+.survey-settle,
+.survey-sheet {
+  display: grid;
+  gap: 10px;
+}
+.survey-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.15);
+}
+.survey-head small {
+  display: block;
+  color: var(--dim);
+}
+.survey-settle {
+  padding: 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.2);
+}
+.survey-settle h3,
+.survey-sheet h3 {
+  margin: 0;
+}
+.survey-settle h4,
+.survey-group h4 {
+  margin: 6px 0 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.survey-budget {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+}
+.survey-budget .bad {
+  color: var(--bad);
+}
+.survey-offer {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 6px;
+}
+.offer-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 2px 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.offer-item > input {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+.offer-name {
+  grid-column: 2;
+  grid-row: 1;
+  font-weight: 700;
+}
+.offer-cost {
+  grid-column: 3;
+  grid-row: 1;
+}
+.offer-desc {
+  grid-column: 2 / span 2;
+  grid-row: 2;
+  color: var(--dim);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.offer-item.owned {
+  opacity: 0.55;
+  cursor: default;
+}
+.offer-item.short {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.survey-commit {
+  display: flex;
+  justify-content: flex-end;
+}
+.survey-fish td {
+  min-width: 150px;
+  font-size: 11.5px;
+  vertical-align: top;
+}
+.fishchip {
+  display: inline-block;
+  margin: 1px 3px 1px 0;
+  padding: 1px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--dim);
+}
+.fishchip.got {
+  color: var(--fg);
+  border-color: var(--ok);
+  background: rgba(80, 200, 140, 0.12);
+}
+.kit-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--dim);
+}
+.kit-list li.owned {
+  color: var(--ok);
+}
 .help details {
   border: 1px solid var(--line);
   border-radius: 10px;

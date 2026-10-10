@@ -2,9 +2,10 @@
 
 import { COLORS, SEAT } from '../engine/core.js';
 import { Game } from '../engine/game.js';
+import { progress } from '../engine/survey.js';
 import { h, clear } from './dom.js';
 import { seatColor } from './art.js';
-import { UI, savePrefs } from './store.js';
+import { UI, savePrefs, loadSurvey } from './store.js';
 import { ICON_SETS, iconSet, setIconSet } from './icons.js';
 
 export const SPEEDS = [
@@ -26,7 +27,7 @@ export function speedSelect(onChange) {
   return sel;
 }
 
-export function createMenu({ onStart, onContinue, onOnline, onHelp }) {
+export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey }) {
   const el = h('main', { class: 'menu' });
 
   function seatCard(c) {
@@ -111,7 +112,7 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp }) {
 
     let hint;
     if (active.length === 0) hint = 'Hãy bật ít nhất một chỗ ngồi.';
-    else if (solo) hint = 'Chơi một mình: chế độ Ocean Survey (5 ngày, 60 lá Regret).';
+    else if (solo) hint = 'Chơi một mình: chiến dịch Ocean Survey. Mỗi ván là một tuần (5 ngày, 60 lá Regret), bắt đầu với trang bị đã mở khóa.';
     else if (nHuman === 0) hint = 'Không có người chơi: bạn sẽ xem các máy tự chơi với nhau.';
     else if (nHuman > 1) hint = `${nHuman} người chơi chung một thiết bị (hot-seat): màn hình che bài sẽ hiện khi đổi người.`;
     else hint = `${active.length} người chơi (${active.length - 1} máy).`;
@@ -125,7 +126,7 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp }) {
         h(
           'div',
           { class: 'toggles' },
-          toggle('tent', 'Lamentable Tentacles', 'Thêm các Fish của bản mở rộng Lamentable Tentacles'),
+          toggle('tent', 'Lamentable Tentacles', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Thêm các Fish của bản mở rộng Lamentable Tentacles'),
           toggle('big', 'Biggest Regrets', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Mỗi người nhận một lá Biggest Regret với khả năng thay đổi theo số Regret'),
           toggle('short', 'Ván ngắn', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Bắt đầu từ Thứ Ba (5 ngày thay vì 6)'),
           toggle('confirm', 'Hỏi xác nhận trước khi chọn', 'Hành động trong lượt (nút hành động, bắn câu, bán và mua ở Port) phải bấm Chọn để xác nhận, tránh bấm nhầm. Các bước chọn bên trong một hành động vẫn làm ngay.'),
@@ -169,6 +170,16 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp }) {
         ),
       );
     }
+    const sv = loadSurvey();
+    const pr = progress(sv);
+    actions.append(
+      h(
+        'button',
+        { type: 'button', class: 'btn xl', onclick: () => onSurvey() },
+        'Bảng Ocean Survey',
+        h('small', null, `Tuần ${sv.weeks} · ${pr.done}/${pr.total} Fish${sv.pending ? ' · có kết quả chờ ghi' : ''}`),
+      ),
+    );
     actions.append(h('button', { type: 'button', class: 'btn ghost xl', onclick: () => onHelp() }, 'Luật chơi'));
     el.append(actions);
     el.append(h('footer', { class: 'credit' }, 'Bản làm lại không chính thức của boardgame Deep Regrets, dùng hình ảnh từ bản Tabletop Simulator có sẵn trên máy bạn.'));

@@ -2,10 +2,11 @@
 
 import { S, RT, setState } from './state.js';
 import { U, rnd } from './util.js';
-import { COLORS, SEAT, Log } from './core.js';
+import { COLORS, SEAT, Log, Dc } from './core.js';
 import { D } from './data.js';
 
-const SOLO_REMOVED = [114, 124, 230, 243, 217, 312, 306, 324];
+/** solo: these Fish are taken out of the box (pre-checked on the Ocean Survey sheet, see survey.js) */
+export const SOLO_REMOVED = [114, 124, 230, 243, 217, 312, 306, 324];
 
 export const Setup = {
   newPlayer(color) {
@@ -41,7 +42,27 @@ export const Setup = {
   },
 
   /**
-   * opts: { tent, big, short, seed, seats: {color: 'human'|'bot'} }; colors: list of seat colors.
+   * kit: what the Ocean Survey unlocked { dice: ['b'|'g'|'o'], rods: [id], reels: [id], sups: [id] }.
+   * Every piece is a single copy, so it leaves the decks the game draws from. Tackle dice start Spent and are rolled on day 1.
+   */
+  applyKit(p, kit) {
+    for (const k of kit.dice || []) Dc.gain(p, k, false);
+    for (const id of kit.rods || []) {
+      p.rods.push(id);
+      U.rm(S.rod, id);
+    }
+    for (const id of kit.reels || []) {
+      p.reels.push(id);
+      U.rm(S.reel, id);
+    }
+    for (const id of kit.sups || []) {
+      p.items.push(id);
+      U.rm(S.sd, id);
+    }
+  },
+
+  /**
+   * opts: { tent, big, short, seed, seats: {color: 'human'|'bot'}, kit (solo only) }; colors: list of seat colors.
    * Leaves the new state in S.
    */
   newGame(colors, opts) {
@@ -146,6 +167,9 @@ export const Setup = {
       U.shuffle(S.bigd);
       for (const c of order) S.P[c].big = S.bigd.length > 0 ? S.bigd.shift() : false;
     }
+
+    // Ocean Survey: equipment unlocked on the sheet starts the game in the player's hands (see survey.js)
+    if (solo && opts.kit) Setup.applyKit(S.P[order[0]], opts.kit);
 
     Log.sys(
       `Ván mới: ${order.length} người chơi${solo ? ' (Ocean Survey - chơi một mình)' : ''}${S.opt.tent ? ', Lamentable Tentacles' : ''}${S.opt.short ? ', ván ngắn' : ''}${S.opt.big ? ', Biggest Regrets' : ''}`,

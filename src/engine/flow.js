@@ -577,7 +577,20 @@ export const Fl = {
       ksum += Rl.val(p, id);
     }
     const jnames = jet.map((id) => D.fish[id].n);
-    S.res = { mode: 'solo', regV: R, jet: jnames, jetIds: jet.slice(), kept, total: ksum, plug: !!S.plug };
+    // Dinks held at the end lower the cost of equipment on the Survey (only the shop part; the Ear's Difficulty part is ignored)
+    const shop = p.dinks.map((id) => D.dink[id]).filter((d) => d && d.shop);
+    const disc = shop.reduce((s, d) => s + d.shop, 0);
+    S.res = {
+      mode: 'solo',
+      regV: R,
+      jet: jnames,
+      jetIds: jet.slice(),
+      kept,
+      total: ksum,
+      plug: !!S.plug,
+      disc,
+      dinks: shop.map((d) => `${d.n} (-${d.shop}$)`),
+    };
     Log.say(c, `mang ${kept.length} Fish trị giá ${ksum} về Cảng. Hãy dùng điểm đó để mở khóa trang bị trên tờ Survey của bạn!`);
   },
 
