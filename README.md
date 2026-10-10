@@ -62,7 +62,7 @@ Mở hai cửa sổ trình duyệt: một bên bấm **Tạo phòng**, bên kia 
 
 ### Triển khai
 
-1. **Supabase**: tạo project, mở SQL Editor, chạy nội dung `supabase/schema.sql`. Lấy `Project URL` và khóa `service_role`
+1. **Supabase**: tạo project, mở SQL Editor, chạy nội dung `supabase/schema.sql` (chạy lại cũng an toàn; nếu báo lỗi `pg_cron`, bật extension đó trong Database → Extensions rồi chạy lại). Lấy `Project URL` và khóa `service_role`
    (Project Settings → API). Khóa này bí mật: chỉ đặt trong Render, không đưa vào mã nguồn hay trình duyệt.
 2. **Render**: New → Blueprint, chọn repo này (đọc `render.yaml`). Điền ba biến: `ALLOWED_ORIGINS` (địa chỉ Vercel, ví dụ
    `https://deep-regret.vercel.app`), `SUPABASE_URL` và `SUPABASE_SERVICE_ROLE_KEY`. Khi deploy xong, mở
@@ -76,6 +76,9 @@ Mọi địa chỉ Vercel (kể cả preview) phải nằm trong `ALLOWED_ORIGIN
 
 - **Không có hình ảnh** trên bản Vercel: `assets/` không nằm trong git. Đưa hình lên trang công khai là phân phối lại tài sản
   có bản quyền. `INCLUDE_ASSETS=1 npm run site` chỉ copy `assets/` vào `public/` khi bạn tự quyết định làm vậy.
+- **Dọn phòng cũ**: mỗi giờ, pg_cron xóa các phòng được tạo hơn 7 ngày trước và không có quyết định nào trong 7 ngày gần nhất.
+  Thành viên và lịch sử quyết định của phòng đó cũng bị xóa. Ván đã kết thúc cũng bị xóa sau 7 ngày, nên hãy xem lại trước thời hạn đó.
+  Muốn đổi thời hạn thì sửa `prune_idle_rooms` trong `supabase/schema.sql`.
 - **Render gói miễn phí** tự ngủ sau 15 phút không có truy cập; lần vào đầu tiên có thể chậm vài chục giây.
 - **Một máy chủ, mỗi tiến trình giữ một ván một lúc.** Chạy nhiều bản sao cần thiết kế lại phần phòng.
 - **Bảo mật mức giao diện**: mọi máy đều có hạt giống của ván (giống chơi hot-seat), nên đây không phải cơ chế chống gian lận.
