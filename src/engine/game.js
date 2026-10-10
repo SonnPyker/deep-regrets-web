@@ -8,6 +8,7 @@ import { Fl } from './flow.js';
 import { Bot } from './bot.js';
 
 const SAVE_KEY = 'deepregrets.save.v1';
+const VERIFY_MS = 20000; // a dry run that takes longer than this is reported as a failed check
 const never = () => new Promise(() => {});
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** resolve with `a` unless a newer run has taken over meanwhile (a superseded run must never touch the shared state) */
@@ -17,6 +18,11 @@ const settle = (token, a) =>
       if (token === Game.token) resolve(a);
     });
   });
+/** wait until the engine has nothing to do before a player acts: a question is open, the game is over or broken, or a bot is thinking */
+const settled = async () => {
+  const t0 = Date.now();
+  while (!Game.prompt && !Game.over && !Game.error && !Game.thinking && Date.now() - t0 < VERIFY_MS) await sleep(0);
+};
 
 function storage() {
   try {
@@ -37,6 +43,7 @@ export const Game = {
   speed: 400, // ms a bot "thinks" per decision (0 = instant)
   token: 0,
   keepLocal: true, // false on the server: games are not written to localStorage there
+  _quiet: false, // a dry run (verify) is replaying: nothing is shown and nothing is saved
   remote: null, // online: { seat, send(n, a) }. The server decides the bots and records every answer.
   _resolve: null,
   _await: null, // online: { k, resolve } the run waits until answer k is recorded
@@ -50,6 +57,7 @@ export const Game = {
     return () => Game._listeners.delete(fn);
   },
   emit() {
+    if (Game._quiet) return;
     Game.version++;
     for (const fn of Game._listeners) {
       try {
@@ -177,7 +185,7 @@ export const Game = {
       },
       (e) => {
         if (token !== Game.token) return;
-        console.error(e);
+        if (!Game._quiet) console.error(e); // a dry run (verify) reports its failure to the player itself
         Game.error = e;
         Game.prompt = null;
         Game.thinking = null;
@@ -196,7 +204,7 @@ export const Game = {
   /** answer the current prompt. pick: option index; multi: array of item indices or null when cancelled */
   answer(v) {
     const pr = Game.prompt;
-    if (!pr || !Game._valid(pr, v)) return false;
+    if (!pr || Game._quiet || !Game._valid(pr, v)) return false;
     if (Game.remote) {
       // only the answer the run is waiting for, and only once: the server records it and sends it to every seat
       if (!Game._await || Game._await.k !== Game.rec.length || Game._sent === Game.rec.length) return false;
@@ -258,7 +266,7 @@ export const Game = {
   // SAVE / LOAD -------------------------------------------------------------------------------------
   save() {
     const st = storage();
-    if (!Game.keepLocal || Game.remote || !st || !Game.setup) return;
+    if (!Game.keepLocal || Game.remote || Game._quiet || !st || !Game.setup) return;
     try {
       st.setItem(SAVE_KEY, JSON.stringify({ v: 1, setup: Game.setup, rec: Game.rec.map((r) => [r.a, r.h ? 1 : 0, r.t || '']) }));
     } catch {
@@ -297,6 +305,59 @@ export const Game = {
     }
     Game.launch();
     return true;
+  },
+  /** a game in progress can go into a save slot: not online, not finished, not broken */
+  canSave() {
+    return Game.setup !== null && !Game.remote && !Game.over && !Game.error;
+  },
+  /** continue a saved game (slot or file): its answers are replayed, and it becomes the game a reload resumes */
+  resume(setup, rec) {
+    if (Game.remote) return false;
+    Game.setup = { colors: setup.colors.slice(), opts: setup.opts };
+    Game.rec = rec.map((r) => ({ a: r.a, h: !!r.h, t: r.t || '' }));
+    Game.launch();
+    Game.save();
+    return true;
+  },
+  /**
+   * replay a stored game in the background: nothing is shown or saved. Resolves null when the answers play out up to a
+   * question of the game (or to its end), otherwise the reason. A game in progress is put back exactly as it was, and
+   * the call returns only once that game has stopped at its next question (its steps all run on microtasks).
+   */
+  async verify(setup, rec) {
+    if (Game.remote) return 'Không thể thay ván đang chơi online bằng bản lưu.';
+    const keep = { setup: Game.setup, rec: Game.rec, speed: Game.speed };
+    let reason = null;
+    Game._quiet = true;
+    Game.stop(); // the game in progress is set aside; its steps stop at their next question
+    await sleep(0);
+    Game.setup = { colors: setup.colors.slice(), opts: setup.opts };
+    Game.rec = rec.map((r) => ({ a: r.a, h: !!r.h, t: r.t || '' }));
+    Game.speed = 0;
+    try {
+      Game.launch();
+      const t0 = Date.now();
+      // the engine runs on microtasks, so the replay stops at the first question the record does not answer
+      while (!Game.over && !Game.error && !Game.prompt && Date.now() - t0 < VERIFY_MS) await sleep(0);
+      if (Game.error) {
+        reason ='Bản lưu này không khớp với luật của phiên bản hiện tại nên không tải được.';
+      } else if (!Game.over && !Game.prompt) reason = 'Bản lưu này mất quá lâu để kiểm tra.';
+    } catch (e) {
+      console.error(e);
+      reason = 'Không kiểm tra được bản lưu này.';
+    } finally {
+      // the dry run is over: its steps must stop before the game that comes next takes over the shared state
+      Game.token++;
+      await sleep(0);
+      Game._quiet = false;
+      Game.setup = keep.setup;
+      Game.rec = keep.rec;
+      Game.speed = keep.speed;
+      if (keep.setup) Game.launch();
+      else Game.stop();
+    }
+    if (keep.setup) await settled();
+    return reason;
   },
   clearSave() {
     const st = storage();

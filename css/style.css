@@ -1992,6 +1992,61 @@ input[type='text'] {
   margin: 0;
 }
 
+/* save slots ------------------------------------------------------------------------------------------------------------ */
+.saves {
+  display: grid;
+  gap: 14px;
+}
+.saves .seg {
+  justify-self: stretch;
+}
+.saves .seg button {
+  white-space: nowrap;
+}
+.save-slots {
+  display: grid;
+  gap: 10px;
+}
+.save-card {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel2);
+}
+.save-card.empty {
+  border-style: dashed;
+  background: transparent;
+}
+.save-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.save-head .dim {
+  font-size: 13px;
+}
+.save-info {
+  font-size: 14px;
+}
+.save-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.save-pick .btn {
+  width: 100%;
+}
+.btn.danger:not(.primary):not(:disabled) {
+  color: var(--bad);
+}
+.save-note {
+  margin: 0;
+  font-size: 13px;
+}
+
 /* toasts ---------------------------------------------------------------------------------------------------------------- */
 #toasts {
   position: fixed;
@@ -2109,6 +2164,7 @@ input[type='text'] {
   .layout {
     display: flex;
     flex-direction: column;
+    align-items: stretch;
     padding: 10px 10px 40px;
   }
   .col-main {
