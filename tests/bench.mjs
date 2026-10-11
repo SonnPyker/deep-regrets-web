@@ -1,12 +1,13 @@
 // Bench: play seeded games and compare the Bot with other choosers. Read-only with respect to the repo.
 // Usage: node tests/bench.mjs [games=300] [players=3] [mode=mixed|allbot|allrandom] [--red=profile] [--set=knob=value,...]
-//                             [--opp=rnd|profile] [--from=1]
+//                             [--opp=rnd|profile] [--from=1] [--days=6|9|12]
 //   mixed:      seat Red is the Bot, the other seats choose at random (with --opp=<profile> they play the Bot with that profile)
 //   allbot:     every seat is the Bot
 //   allrandom:  no Bot seats; its stats are filed under the "bot" key
 //   --red:      the profile Red plays with (every seat in allbot); --set overrides single knobs for it, e.g. --set=castMin=0.4
 //   --opp:      what the other seats play in mixed mode: rnd (the random chooser, the default) or a profile
 //   --from:     first seed; games run from..from+games-1, so a tuning set and a validation set can differ
+//   --days:     length of the game (a DAY_CHOICES value, 6 by default); the bot's day rules follow it
 // Seeds run from..from+games-1, so a run can be repeated exactly. Prints one JSON summary on stdout (errors go to stderr).
 // "fallbacks" counts bot answers that were not valid for their prompt; those seats were answered at random instead.
 
@@ -67,6 +68,7 @@ const FROM = Number(flags.from || 1);
 const RED = flags.red || 'default';
 const OPP = flags.opp || 'rnd';
 const SET = flags.set || '';
+const DAYS = Number(flags.days || 6);
 
 // a profile is a named preset plus optional knob overrides; a knob keeps its type (boolean or number)
 function profile(name, sets) {
@@ -135,7 +137,7 @@ for (let seed = FROM; seed < FROM + N; seed++) {
   RT.log.length = 0;
   Bot.reset();
   try {
-    Setup.newGame(colors, { tent: true, big: true, short: false, seed });
+    Setup.newGame(colors, { tent: true, big: true, short: false, days: DAYS, seed });
     await Fl.main();
     games++;
     const rows = S.res.rows;
@@ -167,7 +169,7 @@ const f = (g) =>
     : null;
 console.log(
   JSON.stringify(
-    { mode: MODE, players: NP, games, errors, from: FROM, red: RED, set: SET, opp: OPP, bot: f(stats.bot), [OTHER]: f(stats[OTHER]), fallbacks },
+    { mode: MODE, players: NP, days: DAYS, games, errors, from: FROM, red: RED, set: SET, opp: OPP, bot: f(stats.bot), [OTHER]: f(stats[OTHER]), fallbacks },
     null,
     1,
   ),

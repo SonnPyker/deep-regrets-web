@@ -13,7 +13,14 @@ export const SEAT = {
   Teal: { name: 'Fred', hex: '#14B8A6', board: 'fred' },
 };
 export const DAYS = ['Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+// A week has six days. A longer game (several players) plays more weeks: its day effects repeat every week.
+export const WEEK = DAYS.length;
+export const DAY_CHOICES = [6, 9, 12]; // 6 is the rules as printed (one week); 9 and 12 are added longer games
 export const ROMAN = ['I', 'II', 'III'];
+/** the weekday (1..6) of day d, counting from the first Monday of the game */
+export const weekday = (d) => ((d - 1) % WEEK) + 1;
+/** name of day d: the weekday, and the week number from the second week on */
+export const dayLabel = (d) => `${DAYS[weekday(d) - 1]}${d > WEEK ? ` · tuần ${Math.floor((d - 1) / WEEK) + 1}` : ''}`;
 
 // LOG -----------------------------------------------------------------------------------------------
 export const Log = {
@@ -212,7 +219,7 @@ export const Rl = {
     for (let k = 0; k < S.order.length; k++) r.push(S.order[(i + k) % S.order.length]);
     return r;
   },
-  dayName: () => DAYS[S.day - 1] || '?',
+  dayName: () => dayLabel(S.day),
   isLastDay: () => S.day >= S.dayLast,
 };
 

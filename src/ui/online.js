@@ -1,7 +1,7 @@
 // Online co-op screen: create or join a room, the lobby (seats, host options, start) and the link to the room's game.
 // The room connection lives here; the game itself is shown by the main screen, through onPlay.
 
-import { COLORS, SEAT } from '../engine/core.js';
+import { COLORS, DAY_CHOICES, SEAT, WEEK } from '../engine/core.js';
 import { Game } from '../engine/game.js';
 import { h, clear, toast } from './dom.js';
 import { seatColor } from './art.js';
@@ -15,7 +15,7 @@ const CODE_RE = /^[A-Z2-9]{6}$/;
 const OPTS = [
   ['tent', 'Lamentable Tentacles', 'Thêm các Fish của bản mở rộng Lamentable Tentacles'],
   ['big', 'Biggest Regrets', 'Mỗi người nhận một lá Biggest Regret (cần từ 2 người)'],
-  ['short', 'Ván ngắn', 'Bắt đầu từ Thứ Ba: 5 ngày thay vì 6 (cần từ 2 người)'],
+  ['short', 'Ván ngắn', 'Bắt đầu từ Thứ Ba: bỏ ngày Thứ Hai đầu tiên (cần từ 2 người)'],
 ];
 
 // The rooms this browser has joined, with their seat tokens. A token is what lets the browser come back to its seat.
@@ -41,6 +41,21 @@ function segButton(label, on, fn) {
   return h('button', { type: 'button', role: 'radio', 'aria-checked': on ? 'true' : 'false', class: on ? 'on' : '', onclick: fn }, label);
 }
 
+/** the day count of a room's game as a segment control; disabled for everyone but the host */
+function daysSeg(cur, disabled, onPick) {
+  return h(
+    'div',
+    { class: 'seg', role: 'radiogroup', 'aria-label': 'Số ngày của ván' },
+    DAY_CHOICES.map((d) =>
+      h(
+        'button',
+        { type: 'button', role: 'radio', 'aria-checked': cur === d ? 'true' : 'false', class: cur === d ? 'on' : '', disabled, onclick: () => onPick(d) },
+        `${d} ngày`,
+      ),
+    ),
+  );
+}
+
 function toggleBox(id, title, desc, checked, disabled, onChange) {
   const cb = h('input', { type: 'checkbox', id, checked, disabled });
   cb.addEventListener('change', () => onChange(cb.checked));
@@ -57,6 +72,7 @@ export function createOnline({ onPlay, onMenu }) {
     tent: UI.prefs.tent,
     big: false,
     short: false,
+    days: DAY_CHOICES.includes(UI.prefs.days) ? UI.prefs.days : WEEK,
   };
   let session = null; // { code, token, conn, open, playing, room, you }
   let busy = '';
@@ -158,7 +174,7 @@ export function createOnline({ onPlay, onMenu }) {
   function create() {
     saveName();
     return withBusy('Đang tạo phòng…', async () => {
-      const r = await createRoom({ name: form.name, players: form.players, opts: { tent: form.tent, big: form.big, short: form.short } });
+      const r = await createRoom({ name: form.name, players: form.players, opts: { tent: form.tent, big: form.big, short: form.short, days: form.days } });
       enter(r);
     });
   }
@@ -177,6 +193,7 @@ export function createOnline({ onPlay, onMenu }) {
   const release = () => send({ type: 'release' });
   const setSeat = (seat, type) => send({ type: 'config', seats: { [seat]: type } });
   const setOpt = (key, on) => send({ type: 'config', opts: { [key]: on } });
+  const setDays = (days) => send({ type: 'config', opts: { days } });
   const start = () => send({ type: 'start' });
 
   async function leaveRoom() {
@@ -242,6 +259,16 @@ export function createOnline({ onPlay, onMenu }) {
           'div',
           { class: 'toggles' },
           OPTS.map(([k, t, d]) => toggleBox(`on-new-${k}`, t, d, form[k], false, (on) => (form[k] = on))),
+        ),
+        h(
+          'div',
+          { class: 'field daysfield' },
+          h('span', null, 'Số ngày'),
+          daysSeg(form.days, false, (d) => {
+            form.days = d;
+            render();
+          }),
+          h('small', null, '6 ngày là luật in sẵn. 9 và 12 ngày là luật tự thêm: các ngày sau lặp lại lịch tuần.'),
         ),
         h('div', { class: 'btnrow' }, h('button', { type: 'button', class: 'btn primary', disabled: !!busy, onclick: create }, 'Tạo phòng')),
       ),
@@ -365,6 +392,12 @@ export function createOnline({ onPlay, onMenu }) {
           'div',
           { class: 'toggles' },
           OPTS.map(([k, t, d]) => toggleBox(`on-${k}`, t, d, room.opts[k], !host, (on) => setOpt(k, on))),
+        ),
+        h(
+          'div',
+          { class: 'field daysfield' },
+          h('span', null, 'Số ngày'),
+          daysSeg(DAY_CHOICES.includes(room.opts.days) ? room.opts.days : WEEK, !host, setDays),
         ),
       ),
       h('section', { class: 'panel' }, h('h2', null, '3. Người xem'), h('p', { class: watchers.length ? '' : 'dim' }, watchers.length ? watchers.join(', ') : 'Không có ai đang xem.')),

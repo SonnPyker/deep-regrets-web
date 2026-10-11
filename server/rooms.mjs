@@ -2,7 +2,7 @@
 // engine and the store are shared. The engine is the only place where an answer is checked.
 
 import { createHash, randomBytes, randomInt, randomUUID } from 'node:crypto';
-import { COLORS, SEAT } from '../src/engine/core.js';
+import { COLORS, DAY_CHOICES, SEAT, WEEK } from '../src/engine/core.js';
 import { engine } from './engine.mjs';
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // no I, L, O, 0 or 1: easy to read out loud
@@ -128,7 +128,7 @@ export function createRooms({ store, log = console.error }) {
     if (!Number.isInteger(n) || n < 2 || n > COLORS.length) throw new CmdError('Số người chơi phải từ 2 đến 5.');
     const colors = COLORS.slice(0, n);
     const seats = Object.fromEntries(colors.map((c) => [c, 'human']));
-    const roomOpts = { tent: !!opts?.tent, big: !!opts?.big, short: !!opts?.short };
+    const roomOpts = { tent: !!opts?.tent, big: !!opts?.big, short: !!opts?.short, days: DAY_CHOICES.includes(opts?.days) ? opts.days : WEEK };
     const token = newToken();
     return serial(async () => {
       let code = newCode();
@@ -219,6 +219,7 @@ export function createRooms({ store, log = console.error }) {
       }
       const nextOpts = { ...room.opts };
       for (const k of OPTS) if (opts && typeof opts[k] === 'boolean') nextOpts[k] = opts[k];
+      if (opts && DAY_CHOICES.includes(opts.days)) nextOpts.days = opts.days;
       await store.updateRoom(room.code, { seats: nextSeats, opts: nextOpts });
       for (const m of members) if (m.seat && nextSeats[m.seat] !== 'human') await store.updateMember(m.id, { seat: null });
       await broadcastRoom(room.code);
@@ -241,6 +242,7 @@ export function createRooms({ store, log = console.error }) {
           tent: room.opts.tent,
           big: multi && room.opts.big,
           short: multi && room.opts.short,
+          days: multi ? room.opts.days ?? WEEK : WEEK,
           seed: randomInt(4294967296),
           seats: { ...room.seats },
         },

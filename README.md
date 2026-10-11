@@ -32,7 +32,7 @@ Khi sửa code trong `src/`, chạy `npm run watch` để tự build lại, ho�
 - Đủ luật: 6 ngày, Refresh/Muster Courage, Declaration, Fresh/Spent, Fair/Foul, Madness theo số Regret, Regret Value,
   Lifeboat/Abandon Ship, Can of Worms, Omen, The Plug, Overfishing, mount tường (x2/x3/x2), cửa hàng (Dink/Supply/Rod/Reel), Life Preserver,
   phạt người có nhiều Regret nhất, tính điểm và phá hòa.
-- Bản mở rộng: Lamentable Tentacles, Biggest Regrets; tùy chọn ván ngắn (5 ngày).
+- Bản mở rộng: Lamentable Tentacles, Biggest Regrets; tùy chọn ván ngắn (bỏ Thứ Hai); nhiều người chơi chọn 6, 9 hoặc 12 ngày (9 và 12 ngày là luật tự thêm, các ngày lặp lại lịch tuần).
 - Gợi ý (💡), Hoàn tác (↶), tự lưu và tiếp tục ván, hạt giống ngẫu nhiên có thể lặp lại, tốc độ máy chỉnh được.
 - Ba ô lưu cho mỗi chế độ (Solo và Nhiều người chơi): bấm 💾 trên thanh trên cùng để lưu ván đang chơi, tải lại, xuất ra tệp `.json` và nhập lại. Tệp nhập vào được chạy thử trước khi ghi, tệp hỏng hoặc không khớp luật hiện tại bị từ chối.
 - Bấm thẳng lên bàn: quăng câu bằng cách bấm Shoal trên bàn, chọn Slot Mount ngay trên tường của bạn, chọn người chơi hoặc lá bài đang nằm trước mặt.

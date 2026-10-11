@@ -1,7 +1,7 @@
 // Entry point: wires the engine controller (Game) to the screens.
 
 import { S } from '../engine/state.js';
-import { COLORS, SEAT, DAYS } from '../engine/core.js';
+import { COLORS, SEAT, DAY_CHOICES, WEEK, dayLabel, weekday } from '../engine/core.js';
 import { Game } from '../engine/game.js';
 import { Bot } from '../engine/bot.js';
 import { h, clear, frameThrottle, toast, labelIcons, installTapTitles } from './dom.js';
@@ -257,19 +257,21 @@ function renderTableInfo() {
 function renderTopbar() {
   if (!S.order) return;
   const pills = [];
-  for (let d = S.dayStart; d <= S.dayLast; d++) {
-    pills.push(h('span', { class: `pill${d === S.day ? ' now' : ''}${d < S.day ? ' done' : ''}`, title: DAYS[d - 1] }, SHORT_DAY[d - 1]));
+  // a longer game shows the pills of the current week only: the top bar has room for one week (the phase line names it)
+  const wk = Math.floor((S.day - 1) / WEEK);
+  for (let d = Math.max(S.dayStart, wk * WEEK + 1); d <= Math.min(S.dayLast, (wk + 1) * WEEK); d++) {
+    pills.push(h('span', { class: `pill${d === S.day ? ' now' : ''}${d < S.day ? ' done' : ''}`, title: dayLabel(d) }, SHORT_DAY[weekday(d) - 1]));
   }
   clear(dayPills);
   dayPills.append(...pills);
   const turn = S.turn && S.ph === 'action' ? ` · lượt ${SEAT[S.turn].name}` : '';
-  phaseEl.textContent = `${DAYS[S.day - 1] || ''} · ${PHASES[S.ph] || ''}${turn}`;
+  phaseEl.textContent = `${dayLabel(S.day)} · ${PHASES[S.ph] || ''}${turn}`;
   const anyBot = S.order.some((c) => S.seats[c] === 'bot');
   speedWrap.style.display = anyBot ? '' : 'none';
   surveyBtn.style.display = S.mode === 'solo' ? '' : 'none';
   saveBtn.style.display = Game.canSave() ? '' : 'none';
   saveEl.textContent = Game.remote ? online.info() : Game.hasSave() ? '● đã lưu' : '';
-  document.title = `Deep Regrets · ${DAYS[S.day - 1] || ''}`;
+  document.title = `Deep Regrets · ${dayLabel(S.day)}`;
 }
 
 /** what the current prompt lets the player click directly on the table (mount slots, players, cards lying in front of them) */
@@ -444,7 +446,8 @@ function startGame(setupOverride) {
     if (!colors.length) return;
     for (const c of colors) seats[c] = UI.prefs.seats[c];
     const multi = colors.length > 1;
-    setup = { colors, opts: { tent: multi && UI.prefs.tent, big: multi && UI.prefs.big, short: multi && UI.prefs.short, seed: parseSeed(UI.prefs.seed), seats } };
+    const days = DAY_CHOICES.includes(UI.prefs.days) ? UI.prefs.days : WEEK;
+    setup = { colors, opts: { tent: multi && UI.prefs.tent, big: multi && UI.prefs.big, short: multi && UI.prefs.short, days: multi ? days : WEEK, seed: parseSeed(UI.prefs.seed), seats } };
   }
   if (setup.colors.length === 1) {
     // solo is the Ocean Survey campaign: the last week is settled on the sheet first, and the game starts with the unlocked kit

@@ -2,7 +2,7 @@
 // It lives in a slide-over drawer (opened from the top bar) so it never pushes the table down the page.
 
 import { RT } from '../engine/state.js';
-import { DAYS } from '../engine/core.js';
+import { dayLabel } from '../engine/core.js';
 import { h, clear } from './dom.js';
 import { seatColor } from './art.js';
 import { ic } from './icons.js';
@@ -23,7 +23,7 @@ export function createLog() {
     const out = [];
     if (e.day && e.day !== lastDay && e.k !== 'sys') {
       lastDay = e.day;
-      out.push(h('div', { class: 'logday' }, DAYS[e.day - 1] || `Ngày ${e.day}`));
+      out.push(h('div', { class: 'logday' }, e.day > 0 ? dayLabel(e.day) : `Ngày ${e.day}`));
     }
     out.push(h('div', { class: `logline ${e.k}`, style: e.c ? { '--c': seatColor(e.c) } : null }, e.t));
     return out;

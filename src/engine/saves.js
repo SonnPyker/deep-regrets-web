@@ -4,7 +4,7 @@
 // Modes: 'solo' = one seat (the Ocean Survey campaign), 'coop' = two to five seats (hot-seat and bots). Online rooms are
 // kept by the server and are not saved here.
 
-import { COLORS } from './core.js';
+import { COLORS, DAY_CHOICES } from './core.js';
 import { readSurvey } from './survey.js';
 
 export const SAVE_FORMAT = 'deep-regrets-save';
@@ -53,6 +53,7 @@ export function readSave(raw) {
   if (modeOf(s.colors) !== raw.mode) return no('Chế độ của bản lưu không khớp với số người chơi.');
   const o = s.opts;
   if (!o || typeof o !== 'object' || !Number.isInteger(o.seed) || o.seed < 0 || o.seed > 0xffffffff) return no('Hạt giống của ván không hợp lệ.');
+  if (o.days !== undefined && !DAY_CHOICES.includes(o.days)) return no('Số ngày của ván không hợp lệ.');
   if (!o.seats || typeof o.seats !== 'object' || !s.colors.every((c) => o.seats[c] === 'human' || o.seats[c] === 'bot')) return no('Ghế người/máy của ván không hợp lệ.');
   if (!Array.isArray(raw.rec) || raw.rec.length > MAX_ANSWERS || !raw.rec.every(isEntry)) return no('Lịch sử quyết định trong bản lưu không hợp lệ.');
   const save = {
