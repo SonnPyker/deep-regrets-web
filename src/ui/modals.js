@@ -117,7 +117,7 @@ export function openHelp() {
     { class: 'help' },
     sec(
       'Mục tiêu',
-      h('p', null, 'Bạn là một ngư dân đang tự hủy hoại bản thân. Hãy kiếm nhiều điểm nhất từ Fish (câu được, bán hoặc gắn lên tường), nhưng càng câu nhiều bạn càng tích lũy Regret (hối tiếc) và càng điên loạn. Trò chơi kéo dài 6 ngày (chơi một mình: 5 ngày, chế độ Ocean Survey).'),
+      h('p', null, 'Bạn là một ngư dân đang tự hủy hoại bản thân. Hãy kiếm nhiều điểm nhất từ Fish (câu được, bán hoặc gắn lên tường), nhưng càng câu nhiều bạn càng tích lũy Regret (hối tiếc) và càng điên loạn. Trò chơi kéo dài 6 ngày, một tuần từ Thứ Hai đến Thứ Bảy (chơi một mình: 5 ngày, chế độ Ocean Survey). Nhiều người chơi có thể chọn 9 hoặc 12 ngày: đây là luật tự thêm, không có trong luật in sẵn. Sau Thứ Bảy là tuần mới và các ngày lặp lại lịch tuần.'),
     ),
     sec(
       'Một ngày diễn ra thế nào',
@@ -148,7 +148,7 @@ export function openHelp() {
     sec(
       'Tính điểm',
       h('p', null, 'Mỗi Fish trên tay = giá trị hiện tại (đã tính Madness); Fish đã Mount nhân theo ô (×2/×3/×2, Cloche ×2); mỗi 2$ = 1 điểm. Người có Regret Value cao nhất (tổng giá trị các lá Regret, +10 nếu đã dùng Lifeboat) phải bỏ một Fish đã Mount (2 người: Fish thấp điểm nhất). Hòa điểm: ai có Regret Value thấp hơn thắng, rồi ai ít lá Regret hơn.'),
-      h('p', null, 'Ván kết thúc ngay khi Biển hết Fish hoặc sau ngày cuối cùng.'),
+      h('p', null, 'Ván kết thúc ngay khi Biển hết Fish hoặc sau ngày cuối cùng (6 ngày, hoặc 9 và 12 ngày nếu đã chọn).'),
     ),
     sec(
       'Chơi một mình (Ocean Survey)',

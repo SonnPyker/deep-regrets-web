@@ -23,6 +23,7 @@ export const UI = {
     tent: true,
     big: false,
     short: false,
+    days: 6, // ván nhiều người: 6 ngày (luật in sẵn), hoặc 9 / 12 ngày (luật tự thêm, xem core.js DAY_CHOICES)
     seed: '',
     sound: true,
     confirm: true, // ask once before a click on the table or in the panel is carried out

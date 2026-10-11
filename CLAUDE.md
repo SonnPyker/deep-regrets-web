@@ -25,6 +25,7 @@ There is no per-test filter. Narrow the run through script arguments:
 - `node tests/game.mjs` - controller level: bot-only games, resume, mixed human/bot with undo, replay equality.
 - `node tests/survey.mjs` - Ocean Survey (solo campaign): sheet rules, the kit a game starts with, three weeks in a row.
 - `node tests/saves.mjs` - save slots: a resumed save ends like the live game, `Game.verify` keeps an in-progress game, `readSave` rejects bad files.
+- `node tests/days.mjs` - game length: the day count option (6, 9, 12), the weekday effects that repeat each week, saves without the option.
 - `node tests/bench.mjs [games=300] [players=3] [mixed|allbot|allrandom]` - bot benchmark on seeded games, one JSON summary on stdout. Not part of `npm test`; the file header lists the options.
 
 To debug one card, edit the targeted tests in `tests/cards.mjs` rather than the random runner.
@@ -56,7 +57,7 @@ Engine code is async and never talks to the UI. To ask a player, it calls `Ask.p
 
 ### Turn structure
 
-`Fl.main()` (engine/flow.js) runs the days. `S.ph` moves through `start -> refresh -> declare -> action` and then `day++`, until `S.dayLast` (6, or 5 in solo). The `short` option starts at day 2.
+`Fl.main()` (engine/flow.js) runs the days. `S.ph` moves through `start -> refresh -> declare -> action` and then `day++`, until `S.dayLast` (6 by default; 9 or 12 with the `days` option of a multi-player game; 5 in solo). The `short` option starts at day 2. Day effects and the bot's dice timing follow the weekday (`weekday()` in core.js), so a longer game repeats the week.
 
 - `startPhase` is skipped on the first day. `declarePhase` is skipped on the first day and in solo; the first day and solo equip rods and reels instead.
 - In the action phase, `Fl.turn(me)` offers each player's options. They come from free.js (free actions), fish.js (cast, reveal, pay, catch) and port.js (selling, shopping, mounting).

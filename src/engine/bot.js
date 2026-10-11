@@ -4,7 +4,7 @@
 
 import { S } from './state.js';
 import { D } from './data.js';
-import { Rl, Dc } from './core.js';
+import { Rl, Dc, weekday } from './core.js';
 
 const clamp = (x, a, b) => (x < a ? a : x > b ? b : x);
 const enabled = (pr) => pr.opts.map((o, i) => [o, i]).filter(([o]) => !o.dis);
@@ -27,7 +27,7 @@ const knobs = Object.freeze({
   castMin: 0.6, // cast on a face-down shoal only above this expected score
   castSlack: 1.15, // a face-down shoal's chance of catching is freshSum / (average cost * castSlack)
   castCost: 0.55, // flat cost of casting on a face-down shoal
-  lastBonus: 0.4, // extra value of a face-down cast on the last two days
+  lastBonus: 0.4, // extra value of a face-down cast on the last two days of the game
   revealBonus: 0.4, // extra value of casting onto a revealed fish
   sinkFresh: 5, // sinkers: at least this many fresh dice...
   sinkDep: 3, // ...and the rod depth is below this
@@ -39,7 +39,7 @@ const knobs = Object.freeze({
   seaMaxd: 5, // ...and the Madness modifier at most this
   sellBucks: 3, // on the Port, sell cheap fish only while bucks are below this...
   sellVal: 2, // ...and the fish is worth at most this
-  diceDay: 4, // buy the dice shop on or before this day
+  diceDay: 4, // buy the dice shop on or before this weekday (a longer game repeats the week)
   sellTarget: 5, // sell fish until bucks reach this (the Tier-3 shop)
   passRegs: 1, // Pass reward: discard a Regret when holding at least this many
   supRegs: 2, // supply that discards a Regret: holding at least this many
@@ -111,7 +111,7 @@ function shopWant(p, cfg) {
   const want = [];
   if (p.rods.length === 0) want.push('rod');
   if (p.reels.length === 0) want.push('reel');
-  if (S.day <= cfg.diceDay) want.push('dice');
+  if (weekday(S.day) <= cfg.diceDay) want.push('dice');
   want.push('sup', 'rod', 'reel', 'dice');
   return want;
 }

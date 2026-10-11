@@ -2,7 +2,7 @@
 
 import { S, RT, setState } from './state.js';
 import { U, rnd } from './util.js';
-import { COLORS, SEAT, Log, Dc } from './core.js';
+import { COLORS, SEAT, Log, Dc, DAY_CHOICES, WEEK } from './core.js';
 import { D } from './data.js';
 
 /** solo: these Fish are taken out of the box (pre-checked on the Ocean Survey sheet, see survey.js) */
@@ -62,7 +62,8 @@ export const Setup = {
   },
 
   /**
-   * opts: { tent, big, short, seed, seats: {color: 'human'|'bot'}, kit (solo only) }; colors: list of seat colors.
+   * opts: { tent, big, short, days, seed, seats: {color: 'human'|'bot'}, kit (solo only) }; colors: list of seat colors.
+   * days: how many days the game runs, one of DAY_CHOICES (6 when missing, so older saves keep their 6 days). Solo is always 5.
    * Leaves the new state in S.
    */
   newGame(colors, opts) {
@@ -79,13 +80,14 @@ export const Setup = {
     S.v = 1;
     S.seed = seed;
     S.mode = solo ? 'solo' : 'normal';
-    S.opt = { tent: !!opts.tent, big: !!opts.big, short: !!opts.short };
+    const days = DAY_CHOICES.includes(opts.days) ? opts.days : WEEK;
+    S.opt = { tent: !!opts.tent, big: !!opts.big, short: !!opts.short, days: solo ? 5 : days };
     S.order = order;
     S.seats = {};
     for (const c of order) S.seats[c] = (opts.seats && opts.seats[c]) || 'human';
     S.first = order[rnd(order.length) - 1];
     S.day = 1;
-    S.dayLast = solo ? 5 : 6;
+    S.dayLast = solo ? 5 : S.opt.days;
     S.dayStart = 1;
     S.ph = 'start'; // start | refresh | declare | action | over
     S.turn = false;
@@ -172,7 +174,7 @@ export const Setup = {
     if (solo && opts.kit) Setup.applyKit(S.P[order[0]], opts.kit);
 
     Log.sys(
-      `Ván mới: ${order.length} người chơi${solo ? ' (Ocean Survey - chơi một mình)' : ''}${S.opt.tent ? ', Lamentable Tentacles' : ''}${S.opt.short ? ', ván ngắn' : ''}${S.opt.big ? ', Biggest Regrets' : ''}`,
+      `Ván mới: ${order.length} người chơi${solo ? ' (Ocean Survey - chơi một mình)' : ''}${S.opt.tent ? ', Lamentable Tentacles' : ''}${S.opt.short ? ', ván ngắn' : ''}${!solo && S.opt.days !== WEEK ? `, ${S.opt.days} ngày` : ''}${S.opt.big ? ', Biggest Regrets' : ''}`,
     );
     return S;
   },

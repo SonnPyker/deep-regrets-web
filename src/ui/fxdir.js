@@ -3,7 +3,7 @@
 // It never touches the game: it only reads S / RT and adds short-lived elements to a fixed overlay.
 
 import { S, RT } from '../engine/state.js';
-import { DAYS, Rl, Dc } from '../engine/core.js';
+import { dayLabel, Rl, Dc } from '../engine/core.js';
 import { h } from './dom.js';
 import { play } from './sfx.js';
 import { src, backSrc, seatColor } from './art.js';
@@ -122,7 +122,7 @@ export function createFx({ board, port, panelOf, humans }) {
     prev = cur;
 
     if (!old) {
-      banner(DAYS[S.day - 1] || '', `Ngày ${S.day - S.dayStart + 1}/${S.dayLast - S.dayStart + 1}`, 'day');
+      banner(dayLabel(S.day), `Ngày ${S.day - S.dayStart + 1}/${S.dayLast - S.dayStart + 1}`, 'day');
       play('day');
       return;
     }
@@ -130,7 +130,7 @@ export function createFx({ board, port, panelOf, humans }) {
     const sounds = new Set();
 
     if (cur.day !== old.day && cur.day > old.day) {
-      banner(DAYS[cur.day - 1] || '', `Ngày ${cur.day - S.dayStart + 1}/${S.dayLast - S.dayStart + 1}`, 'day');
+      banner(dayLabel(cur.day), `Ngày ${cur.day - S.dayStart + 1}/${S.dayLast - S.dayStart + 1}`, 'day');
       sounds.add('day');
     }
 

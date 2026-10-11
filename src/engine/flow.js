@@ -2,7 +2,7 @@
 
 import { S } from './state.js';
 import { U } from './util.js';
-import { Log, Ask, Rl, Dc, ROMAN } from './core.js';
+import { Log, Ask, Rl, Dc, ROMAN, weekday } from './core.js';
 import { D } from './data.js';
 import { Fx } from './fx.js';
 import { Fi } from './fish.js';
@@ -168,15 +168,16 @@ export const Fl = {
       }
     }
     if (n > 0) Log.sys(`${n} Fish đã lật bị bỏ khỏi Biển.`);
-    // day effects
+    // day effects follow the weekday, so a longer game repeats the week
     if (!solo) {
-      if (S.day === 3 || S.day === 5) {
+      const wd = weekday(S.day);
+      if (wd === 3 || wd === 5) {
         for (const c of S.order) S.P[c].worms = true;
         Log.sys('Mọi người lật Can of Worms ngửa.');
-      } else if (S.day === 4) {
+      } else if (wd === 4) {
         Log.sys('Ngày lãnh lương! Mọi người nhận 3$.');
         await Fx.forAll((c) => Fx.gain(c, 3));
-      } else if (S.day === 6) {
+      } else if (wd === 6) {
         const nPl = S.order.length;
         let kind = null;
         for (const k of ['o', 'g', 'b']) {

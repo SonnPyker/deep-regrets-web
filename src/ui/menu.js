@@ -1,6 +1,6 @@
 // Start screen: pick seats (human / bot / off), expansions and a seed.
 
-import { COLORS, SEAT } from '../engine/core.js';
+import { COLORS, DAY_CHOICES, SEAT, WEEK } from '../engine/core.js';
 import { Game } from '../engine/game.js';
 import { progress } from '../engine/survey.js';
 import { h, clear } from './dom.js';
@@ -70,6 +70,36 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey, on
     return h('label', { class: 'toggle', for: id }, cb, h('span', { class: 'tbox' }), h('span', null, h('b', null, title), h('small', null, desc)));
   }
 
+  // number of days of a game with several players (solo is always the Ocean Survey week)
+  function daysField(solo) {
+    const cur = DAY_CHOICES.includes(UI.prefs.days) ? UI.prefs.days : WEEK;
+    const seg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Số ngày của ván' });
+    for (const d of DAY_CHOICES) {
+      seg.append(
+        h(
+          'button',
+          {
+            type: 'button',
+            role: 'radio',
+            'aria-checked': cur === d ? 'true' : 'false',
+            class: cur === d ? 'on' : '',
+            disabled: solo,
+            onclick: () => {
+              UI.prefs.days = d;
+              savePrefs();
+              render();
+            },
+          },
+          `${d} ngày`,
+        ),
+      );
+    }
+    const note = solo
+      ? 'Chỉ dùng khi chơi từ 2 người'
+      : '6 ngày là luật in sẵn (một tuần, Thứ Hai đến Thứ Bảy). 9 và 12 ngày là luật tự thêm: sau Thứ Bảy là tuần mới, các ngày lặp lại lịch tuần.';
+    return h('div', { class: 'field daysfield' }, h('span', null, 'Số ngày'), seg, h('small', null, note));
+  }
+
   function iconSetField() {
     const cur = iconSet();
     const seg = h('div', { class: 'seg', role: 'radiogroup', 'aria-label': 'Bộ icon' });
@@ -129,9 +159,10 @@ export function createMenu({ onStart, onContinue, onOnline, onHelp, onSurvey, on
           { class: 'toggles' },
           toggle('tent', 'Lamentable Tentacles', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Thêm các Fish của bản mở rộng Lamentable Tentacles'),
           toggle('big', 'Biggest Regrets', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Mỗi người nhận một lá Biggest Regret với khả năng thay đổi theo số Regret'),
-          toggle('short', 'Ván ngắn', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Bắt đầu từ Thứ Ba (5 ngày thay vì 6)'),
+          toggle('short', 'Ván ngắn', solo ? 'Chỉ dùng khi chơi từ 2 người' : 'Bắt đầu từ Thứ Ba: bỏ ngày Thứ Hai đầu tiên'),
           toggle('confirm', 'Hỏi xác nhận trước khi chọn', 'Hành động trong lượt (nút hành động, bắn câu, bán và mua ở Port) phải bấm Chọn để xác nhận, tránh bấm nhầm. Các bước chọn bên trong một hành động vẫn làm ngay.'),
         ),
+        daysField(solo),
         h(
           'div',
           { class: 'row2' },
